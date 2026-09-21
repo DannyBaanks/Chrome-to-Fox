@@ -72,9 +72,9 @@ def _scan_js_for_apis(content: str, report: dict):
         if full_api not in report["used_apis"]:
             report["used_apis"].append(full_api)
 
-            # Check if it's Chrome-only
+            # Check if it's Chrome-only or incompatible
             status = _get_api_status(namespace, method)
-            if status == "chrome_only":
+            if status in ("chrome_only", "incompatible"):
                 report["chrome_only_apis"].append(full_api)
             else:
                 report["compatible_apis"].append(full_api)

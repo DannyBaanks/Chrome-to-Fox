@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a1a;
+      color: #fff;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .header {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      padding: 16px;
+    }
+    .header h1 { font-size: 16px; font-weight: 600; }
+    .content { 
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+    }
+    .preview {
+      background: #374151;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .preview img {
+      width: 100%;
+      border-radius: 4px;
+    }
+    .info {
+      font-size: 12px;
+      color: #9ca3af;
+    }
+    .actions {
+      padding: 16px;
+      border-top: 1px solid #374151;
+    }
+    .action-btn {
+      width: 100%;
+      padding: 10px;
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+    .action-btn:hover { background: #5558e6; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>html.to.design - Side Panel</h1>
+  </div>
+  
+  <div class="content">
+    <div class="preview">
+      <p>Capture preview will appear here</p>
+    </div>
+    <div class="info">
+      <p>Use the popup to start capturing a webpage.</p>
+    </div>
+  </div>
+  
+  <div class="actions">
+    <button class="action-btn" id="openPopup">Open Popup</button>
+  </div>
+  
+  <script src="sidepanel.js"></script>
+</body>
+</html>

@@ -87,9 +87,19 @@ def get_chrome_only_apis() -> dict[str, Any]:
 
 def get_shim_for_api(api_name: str) -> str | None:
     """Get the polyfill shim filename for a Chrome-only API."""
+    # Try exact match first
     api_info = CHROME_ONLY_APIS.get(api_name)
     if api_info:
         return api_info.get("shim")
+    
+    # Try matching by namespace (e.g., chrome.debugger.getTargets -> chrome.debugger)
+    parts = api_name.split(".")
+    if len(parts) >= 2:
+        namespace = ".".join(parts[:2])  # e.g., "chrome.debugger"
+        api_info = CHROME_ONLY_APIS.get(namespace)
+        if api_info:
+            return api_info.get("shim")
+    
     return None
 
 
@@ -100,6 +110,16 @@ def get_required_shims(used_apis: list[str]) -> list[str]:
         shim = get_shim_for_api(api)
         if shim and shim not in shims:
             shims.append(shim)
+    
+    # Also check by namespace (e.g., chrome.debugger.getTargets -> chrome.debugger)
+    for api in used_apis:
+        parts = api.split(".")
+        if len(parts) >= 2:
+            namespace = ".".join(parts[:2])
+            shim = get_shim_for_api(namespace)
+            if shim and shim not in shims:
+                shims.append(shim)
+    
     return shims
 
 
@@ -113,7 +133,7 @@ def generate_shims_content(used_apis: list[str]) -> str:
     content += "// Auto-generated shims for Chrome-only APIs\n\n"
 
     for shim_file in shims:
-        shim_path = Path(__file__).parent / "shims" / shim_file
+        shim_path = Path(__file__).parent / shim_file
         if shim_path.exists():
             content += f"// --- {shim_file} ---\n"
             content += shim_path.read_text(encoding="utf-8")

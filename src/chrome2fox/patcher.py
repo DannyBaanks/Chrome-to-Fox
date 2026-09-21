@@ -64,6 +64,7 @@ def _default_api_map() -> dict[str, str]:
         "bookmarks": "browser.bookmarks",
         "browserAction": "browser.browserAction",
         "pageAction": "browser.pageAction",
+        "action": "browser.browserAction",  # MV3 action -> browser_action in Firefox
         "contextMenus": "browser.contextMenus",
         "cookies": "browser.cookies",
         "history": "browser.history",
@@ -83,6 +84,7 @@ def _default_api_map() -> dict[str, str]:
         "webNavigation": "browser.webNavigation",
         "webRequest": "browser.webRequest",
         "windows": "browser.windows",
+        "downloads": "browser.downloads",
     }
 
 
