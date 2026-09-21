@@ -130,6 +130,202 @@ def cmd_repair(args):
     return 0 if receipt.verdict == "PASS" else 1
 
 
+def cmd_corpus(args):
+    """Build extension corpus."""
+    from .corpus_builder import CorpusBuilder
+    
+    print(f"\n{'='*60}")
+    print(f"Chrome-to-Fox Corpus Builder")
+    print(f"{'='*60}\n")
+    
+    builder = CorpusBuilder(Path(args.output))
+    
+    # Add extensions
+    source = args.source_url or "local"
+    count = builder.add_extensions(Path(args.input), source)
+    
+    print(f"Added {count} extensions to corpus")
+    
+    # Get stats
+    stats = builder.get_stats()
+    
+    print(f"\n{'='*60}")
+    print(f"Corpus Statistics")
+    print(f"{'='*60}")
+    print(f"Total Extensions: {stats['total_extensions']}")
+    print(f"Average Compatibility: {stats['average_compatibility']:.1f}%")
+    print(f"Source Counts: {stats['source_counts']}")
+    
+    return 0
+
+
+def cmd_patterns(args):
+    """Detect repair patterns."""
+    from .pattern_detector import PatternDetector
+    
+    print(f"\n{'='*60}")
+    print(f"Chrome-to-Fox Pattern Detector")
+    print(f"{'='*60}\n")
+    
+    detector = PatternDetector(Path(args.input))
+    count = detector.load_corpus()
+    
+    print(f"Loaded {count} repair receipts")
+    
+    # Get stats
+    stats = detector.get_stats()
+    
+    print(f"\n{'='*60}")
+    print(f"Pattern Statistics")
+    print(f"{'='*60}")
+    print(f"Total repairs: {stats.total_repairs}")
+    print(f"Successful repairs: {stats.successful_repairs}")
+    print(f"Patterns detected: {stats.patterns_detected}")
+    print(f"Rules generated: {stats.rules_generated}")
+    
+    # Get suggested rules
+    rules = detector.get_suggested_rules(min_confidence=args.min_confidence)
+    
+    if rules:
+        print(f"\nSuggested Rules (confidence >= {args.min_confidence}):")
+        for rule in rules:
+            print(f"  {rule.chrome_api} -> {rule.firefox_equivalent}")
+            print(f"    Evidence: {rule.evidence_count}, Confidence: {rule.confidence:.2f}")
+    
+    # Export rules if output specified
+    if args.output:
+        count = detector.export_rules(Path(args.output))
+        print(f"\nExported {count} rules to: {args.output}")
+    
+    return 0
+
+
+def cmd_scan(args):
+    """Scan installed Chrome extensions."""
+    from .chrome_scanner import ChromeScanner
+    
+    print(f"\n{'='*60}")
+    print(f"Chrome Extension Scanner")
+    print(f"{'='*60}\n")
+    
+    # Add custom paths if specified
+    custom_paths = []
+    if args.chrome_path:
+        custom_paths.append(Path(args.chrome_path))
+    
+    scanner = ChromeScanner(custom_paths)
+    extensions = scanner.scan(include_disabled=args.include_disabled)
+    
+    print(f"Found {len(extensions)} extensions\n")
+    
+    # Display extensions
+    for i, ext in enumerate(extensions[:args.limit], 1):
+        print(f"{i:2d}. {ext.name[:40]:<40}")
+        print(f"    ID: {ext.id}")
+        print(f"    Version: {ext.version} | MV{ext.manifest_version}")
+        if ext.permissions:
+            print(f"    Permissions: {', '.join(ext.permissions[:3])}...")
+        print()
+    
+    # Show stats
+    stats = scanner.get_stats()
+    
+    print(f"{'='*60}")
+    print(f"Statistics")
+    print(f"{'='*60}")
+    print(f"Total: {stats['total']}")
+    print(f"Manifest V2: {stats['manifest_v2']}")
+    print(f"Manifest V3: {stats['manifest_v3']}")
+    
+    if stats['top_permissions']:
+        print(f"\nTop Permissions:")
+        for perm, count in stats['top_permissions'][:5]:
+            print(f"  {perm}: {count}")
+    
+    # Export if requested
+    if args.output:
+        count = scanner.export_list(Path(args.output))
+        print(f"\nExported {count} extensions to: {args.output}")
+    
+    return 0
+
+
+def cmd_bridge(args):
+    """Bridge: Scan Chrome and export to Firefox."""
+    from .chrome_scanner import ChromeScanner
+    from .firefox_exporter import FirefoxExporter
+    
+    print(f"\n{'='*60}")
+    print(f"Chrome-to-Fox Bridge")
+    print(f"{'='*60}\n")
+    
+    # Step 1: Scan Chrome
+    print(f"[1/3] Scanning Chrome extensions...")
+    
+    custom_paths = []
+    if args.chrome_path:
+        custom_paths.append(Path(args.chrome_path))
+    
+    scanner = ChromeScanner(custom_paths)
+    extensions = scanner.scan()
+    
+    # Filter by IDs if specified
+    if args.extensions:
+        ext_ids = [id.strip() for id in args.extensions.split(",")]
+        extensions = [e for e in extensions if e.id in ext_ids]
+        print(f"  Filtered to {len(extensions)} extensions")
+    
+    print(f"  Found {len(extensions)} extensions to convert")
+    
+    if not extensions:
+        print(f"\nNo extensions found to convert")
+        return 0
+    
+    # Step 2: Export to Firefox
+    print(f"\n[2/3] Converting to Firefox...")
+    
+    exporter = FirefoxExporter(
+        output_dir=Path(args.output),
+        auto_shim=True,
+        overwrite=args.overwrite
+    )
+    
+    def progress_callback(current, total, name):
+        print(f"  [{current}/{total}] Converting: {name[:40]}")
+    
+    result = exporter.export_batch(
+        extensions,
+        package_xpi=args.package_xpi,
+        progress_callback=progress_callback
+    )
+    
+    # Step 3: Summary
+    print(f"\n[3/3] Summary")
+    print(f"{'='*60}")
+    print(f"Total Extensions: {result.total_extensions}")
+    print(f"Successful: {result.successful}")
+    print(f"Partial: {result.partial}")
+    print(f"Failed: {result.failed}")
+    print(f"Success Rate: {result.success_rate:.1%}")
+    print(f"Duration: {result.total_duration_ms/1000:.1f}s")
+    
+    # Show failed extensions
+    failed = [r for r in result.results if r.status == "failed"]
+    if failed:
+        print(f"\nFailed Extensions:")
+        for r in failed:
+            print(f"  - {r.extension_name}: {', '.join(r.errors[:2])}")
+    
+    # Show output location
+    print(f"\nOutput: {args.output}")
+    print(f"  Extensions: {args.output}/extensions/")
+    if args.package_xpi:
+        print(f"  XPI Files: {args.output}/xpi/")
+    print(f"  Report: {args.output}/reports/batch_export.json")
+    
+    return 0 if result.failed == 0 else 1
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="chrome2fox",
@@ -185,6 +381,24 @@ def main():
     p_patterns.add_argument("-o", "--output", help="Output file for rules")
     p_patterns.add_argument("--min-confidence", type=float, default=0.6, help="Minimum confidence (default: 0.6)")
     p_patterns.set_defaults(func=cmd_patterns)
+
+    # scan
+    p_scan = subparsers.add_parser("scan", help="Scan installed Chrome extensions")
+    p_scan.add_argument("--chrome-path", help="Custom Chrome extensions path")
+    p_scan.add_argument("--include-disabled", action="store_true", help="Include disabled extensions")
+    p_scan.add_argument("--limit", type=int, default=25, help="Max extensions to show (default: 25)")
+    p_scan.add_argument("-o", "--output", help="Export list to JSON")
+    p_scan.set_defaults(func=cmd_scan)
+
+    # bridge
+    p_bridge = subparsers.add_parser("bridge", help="Scan Chrome and export to Firefox")
+    p_bridge.add_argument("-o", "--output", required=True, help="Output directory")
+    p_bridge.add_argument("--chrome-path", help="Custom Chrome extensions path")
+    p_bridge.add_argument("--extensions", help="Comma-separated extension IDs to convert")
+    p_bridge.add_argument("--min-score", type=float, help="Minimum compatibility score")
+    p_bridge.add_argument("--package-xpi", action="store_true", help="Create .xpi packages")
+    p_bridge.add_argument("--overwrite", action="store_true", help="Overwrite existing conversions")
+    p_bridge.set_defaults(func=cmd_bridge)
 
     args = parser.parse_args()
     if not args.command:
