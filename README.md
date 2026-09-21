@@ -92,6 +92,73 @@ Output:
 Created: extension.xpi (1330 bytes, SHA256: 9687a7b9...)
 ```
 
+### Repair with LLM
+
+The `repair` command performs automated testing and LLM-powered fixes:
+
+```bash
+chrome2fox repair /path/to/chrome-extension/ \
+  -o /path/to/output/ \
+  --llm-base-url https://integrate.api.nvidia.com/v1 \
+  --api-key nvapi-... \
+  --model meta/llama-3.1-70b-instruct \
+  --max-attempts 3
+```
+
+Output:
+```
+Chrome-to-Fox Repair
+==================================================
+
+[1/4] Converting extension...
+✅ Converted: 8 files, 4 JS patched
+
+[2/4] Testing in Firefox...
+❌ Tests failed: fail
+
+[3/4] Repairing with LLM...
+  Patch generated: 2 files
+  Patch applied
+  Retesting...
+  ✅ Repair successful on attempt 1!
+
+[4/4] Final Result
+==================================================
+Verdict: PASS
+Attempts: 1
+Duration: 4523ms
+
+📄 Receipt: /path/to/output/repair_receipt.json
+📦 Created: extension.xpi
+```
+
+**Supported LLM Providers:**
+- NVIDIA API (`https://integrate.api.nvidia.com/v1`)
+- OpenRouter (`https://openrouter.ai/api/v1`)
+- OpenAI (`https://api.openai.com/v1`)
+- Local (Ollama, vLLM, etc.)
+
+**Repair Flow:**
+1. Convert extension deterministically
+2. Test in Firefox with disposable profile
+3. If FAIL: build failure envelope
+4. Send envelope to LLM for targeted patch
+5. Apply patch and retest
+6. Repeat until PASS or max attempts (default 3)
+
+**Verdicts:**
+- `PASS` - All tests pass
+- `DEGRADED` - Fewer failures than before, but not perfect
+- `NOT_REPAIRED` - Could not fix within attempt limit
+
+**Repair Receipt:**
+Each repair produces a `repair_receipt.json` with:
+- Original/converted/final hashes
+- All repair attempts with patches
+- LLM model and tokens used
+- Timing information
+- Final verdict
+
 ## Chrome API Compatibility
 
 | API | Firefox Support | Polyfill | Notes |
@@ -334,6 +401,17 @@ pip install -e .
 
 # Convert test extension
 chrome2fox convert corpus/html-to-design/ -o output/html-to-design/
+
+# Test extension in Firefox
+python -c "from chrome2fox.test_harness import test_extension; r = test_extension('output/html-to-design'); print(r.overall_status)"
+
+# Repair with LLM
+chrome2fox repair corpus/html-to-design/ \
+  -o output/html-to-design \
+  --llm-base-url https://integrate.api.nvidia.com/v1 \
+  --api-key nvapi-... \
+  --model meta/llama-3.1-70b-instruct \
+  --max-attempts 3
 ```
 
 ## Project Structure

@@ -40,6 +40,96 @@ def cmd_package(args):
     return 0
 
 
+def cmd_repair(args):
+    """Convert and repair a Chrome extension with LLM-powered fixes."""
+    from .converter import convert_extension
+    from .repair_engine import RepairEngine
+    from .llm_client import LLMConfig
+    from .test_harness import test_extension
+    
+    print(f"\n{'='*60}")
+    print(f"Chrome-to-Fox Repair")
+    print(f"{'='*60}\n")
+    
+    # Step 1: Convert
+    print(f"[1/4] Converting extension...")
+    report = convert_extension(Path(args.input), Path(args.output))
+    
+    if report.get("errors"):
+        print(f"❌ Conversion failed: {report['errors']}")
+        return 1
+    
+    print(f"✅ Converted: {report['files_processed']} files, {report['js_files_patched']} JS patched")
+    
+    # Step 2: Test
+    print(f"\n[2/4] Testing in Firefox...")
+    test_result = test_extension(Path(args.output), Path(args.input).name)
+    
+    if test_result.overall_status == "pass":
+        print(f"✅ All tests pass!")
+        
+        if args.package_output:
+            from .package import package_extension
+            xpi_path = package_extension(Path(args.output), Path(args.package_output))
+            print(f"\n📦 Created: {xpi_path}")
+        
+        return 0
+    
+    print(f"❌ Tests failed: {test_result.overall_status}")
+    print(f"   Probes: {len(test_result.probes)} total")
+    print(f"   Errors: {len(test_result.runtime_errors)} runtime")
+    print(f"   Permissions: {len(test_result.permission_errors)}")
+    
+    # Step 3: Repair with LLM
+    print(f"\n[3/4] Repairing with LLM...")
+    
+    if not args.llm_base_url:
+        print(f"⚠️  No LLM configured. Use --llm-base-url to enable repair.")
+        print(f"   Example: --llm-base-url https://integrate.api.nvidia.com/v1")
+        return 1
+    
+    # Create LLM config
+    llm_config = LLMConfig(
+        base_url=args.llm_base_url,
+        api_key=args.api_key or "",
+        model=args.model or "meta/llama-3.1-70b-instruct"
+    )
+    
+    # Create repair engine
+    engine = RepairEngine(
+        llm_config=llm_config,
+        firefox_binary=args.firefox_binary
+    )
+    
+    # Run repair
+    receipt = engine.repair(
+        extension_path=Path(args.output),
+        max_attempts=args.max_attempts,
+        verbose=True
+    )
+    
+    # Step 4: Final result
+    print(f"\n[4/4] Final Result")
+    print(f"{'='*60}")
+    print(f"Verdict: {receipt.verdict}")
+    print(f"Attempts: {len(receipt.attempts)}")
+    print(f"Duration: {receipt.total_duration_ms}ms")
+    
+    # Save receipt
+    receipt_path = Path(args.output) / "repair_receipt.json"
+    with open(receipt_path, "w", encoding="utf-8") as f:
+        f.write(receipt.to_json())
+    print(f"\n📄 Receipt: {receipt_path}")
+    
+    # Package if requested and successful
+    if args.package_output and receipt.verdict in ("PASS", "DEGRADED"):
+        from .package import package_extension
+        xpi_path = package_extension(Path(args.output), Path(args.package_output))
+        print(f"📦 Created: {xpi_path}")
+    
+    return 0 if receipt.verdict == "PASS" else 1
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="chrome2fox",
@@ -69,6 +159,18 @@ def main():
     p_package.add_argument("input", help="Path to Firefox extension directory")
     p_package.add_argument("-o", "--output", required=True, help="Output .xpi path")
     p_package.set_defaults(func=cmd_package)
+
+    # repair
+    p_repair = subparsers.add_parser("repair", help="Convert and repair with LLM")
+    p_repair.add_argument("input", help="Path to Chrome extension")
+    p_repair.add_argument("-o", "--output", required=True, help="Output directory")
+    p_repair.add_argument("--llm-base-url", help="LLM API endpoint (e.g., https://integrate.api.nvidia.com/v1)")
+    p_repair.add_argument("--api-key", help="API key (or use NVIDIA_API_KEY env var)")
+    p_repair.add_argument("--model", help="LLM model name (default: meta/llama-3.1-70b-instruct)")
+    p_repair.add_argument("--max-attempts", type=int, default=3, help="Max repair attempts (default: 3)")
+    p_repair.add_argument("--firefox-binary", help="Path to Firefox binary")
+    p_repair.add_argument("--package-output", help="Package as .xpi if repair succeeds")
+    p_repair.set_defaults(func=cmd_repair)
 
     args = parser.parse_args()
     if not args.command:
