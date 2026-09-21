@@ -108,11 +108,11 @@ Created: extension.xpi (1330 bytes, SHA256: 9687a7b9...)
 | chrome.declarativeContent | ⚠️ Partial | Yes | Rule storage only |
 | chrome.sidePanel | ⚠️ Partial | Yes | Maps to sidebarAction |
 | chrome.debugger | ⚠️ Partial | Yes | **Full CDP bridge** (see below) |
-| chrome.tabCapture | ❌ Incompatible | Yes | No-op with warnings |
+| chrome.tabCapture | ⚠️ Partial | Yes | Firefox limited support |
 | chrome.tts | ⚠️ Partial | Yes | Web Speech API fallback |
-| chrome.usb | ❌ Incompatible | Yes | No-op with warnings |
-| chrome.serial | ❌ Incompatible | Yes | No-op with warnings |
-| chrome.hid | ❌ Incompatible | Yes | No-op with warnings |
+| chrome.usb | ⚠️ Partial | Yes | **Full WebUSB bridge** (see below) |
+| chrome.serial | ⚠️ Partial | Yes | **Full Web Serial bridge** (see below) |
+| chrome.hid | ⚠️ Partial | Yes | **Full WebHID bridge** (see below) |
 
 ## Debugger Polyfill — Full CDP Bridge
 
@@ -146,6 +146,82 @@ The `chrome.debugger` polyfill provides a **complete Chrome DevTools Protocol (C
 - **Real debugging** (pause/step) requires DevTools to be open
 - **Network interception** limited (Firefox restriction)
 - **Performance**: Each `sendCommand` executes in page context
+
+## USB Polyfill — Full WebUSB Bridge
+
+The `chrome.usb` polyfill provides a **complete WebUSB bridge** to Firefox via `navigator.usb`.
+
+### Supported Methods
+
+| Method | Description |
+|--------|-------------|
+| `getDevices(options)` | List USB devices |
+| `openDevice(device)` | Open USB device |
+| `closeDevice(handle)` | Close USB device |
+| `claimInterface(handle, interfaceNumber)` | Claim USB interface |
+| `releaseInterface(handle, interfaceNumber)` | Release USB interface |
+| `controlTransfer(handle, transferInfo)` | Control transfer |
+| `bulkTransfer(handle, transferInfo)` | Bulk transfer |
+| `interruptTransfer(handle, transferInfo)` | Interrupt transfer |
+| `isochronousTransfer(handle, transferInfo)` | Isochronous transfer |
+| `resetDevice(handle)` | Reset USB device |
+
+### Events
+
+| Event | Description |
+|-------|-------------|
+| `onConnect` | Device connected |
+| `onDisconnect` | Device disconnected |
+
+## Serial Polyfill — Full Web Serial Bridge
+
+The `chrome.serial` polyfill provides a **complete Web Serial bridge** to Firefox via `navigator.serial`.
+
+### Supported Methods
+
+| Method | Description |
+|--------|-------------|
+| `getDevices()` | List serial ports |
+| `connect(path, options, callback)` | Connect to serial port |
+| `disconnect(connectionId, callback)` | Disconnect from serial port |
+| `send(connectionId, data, callback)` | Send data |
+| `getInfo()` | Get connection info |
+| `update(connectionId, options, callback)` | Update connection options |
+| `getControlSignals(connectionId)` | Get control signals |
+| `setControlSignals(connectionId, signals)` | Set control signals |
+| `flush(connectionId, callback)` | Flush serial port |
+
+### Events
+
+| Event | Description |
+|-------|-------------|
+| `onReceive` | Data received |
+| `onReceiveError` | Receive error |
+| `onConnect` | Port connected |
+| `onDisconnect` | Port disconnected |
+
+## HID Polyfill — Full WebHID Bridge
+
+The `chrome.hid` polyfill provides a **complete WebHID bridge** to Firefox via `navigator.hid`.
+
+### Supported Methods
+
+| Method | Description |
+|--------|-------------|
+| `getDevices(options)` | List HID devices |
+| `connect(vendorId, productId)` | Connect to HID device |
+| `disconnect(connectionId)` | Disconnect from HID device |
+| `send(connectionId, reportId, data)` | Send HID report |
+| `receive(connectionId)` | Receive HID report |
+| `sendFeatureReport(connectionId, reportId, data)` | Send feature report |
+| `receiveFeatureReport(connectionId, reportId)` | Receive feature report |
+
+### Events
+
+| Event | Description |
+|-------|-------------|
+| `onConnect` | Device connected |
+| `onDisconnect` | Device disconnected |
 
 ## Manifest Transform Details
 
