@@ -223,6 +223,91 @@ The `chrome.hid` polyfill provides a **complete WebHID bridge** to Firefox via `
 | `onConnect` | Device connected |
 | `onDisconnect` | Device disconnected |
 
+## TTS Polyfill — Full Web Speech Bridge
+
+The `chrome.tts` polyfill provides a **complete Web Speech API bridge** to Firefox.
+
+### Supported Methods
+
+| Method | Description |
+|--------|-------------|
+| `speak(text, options, callback)` | Speak text with options |
+| `stop()` | Stop speaking |
+| `pause()` | Pause speaking |
+| `resume()` | Resume speaking |
+| `isSpeaking(callback)` | Check if speaking |
+| `getVoices(callback)` | Get available voices |
+| `getStream(streamId)` | Get captured stream (extension) |
+| `stopCapture(streamId)` | Stop capture (extension) |
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `rate` | Speech rate (0.1 to 10, default 1) |
+| `pitch` | Speech pitch (0 to 2, default 1) |
+| `volume` | Speech volume (0 to 1, default 1) |
+| `lang` | Language code (e.g., 'en-US') |
+| `voiceName` | Voice name to use |
+
+### Events
+
+| Event | Description |
+|-------|-------------|
+| `onPause` | Speech paused |
+| `onResume` | Speech resumed |
+| `onStart` | Speech started |
+| `onEnd` | Speech ended |
+| `onError` | Speech error |
+| `onVoiceUpdate` | Voices loaded |
+
+## TabCapture Polyfill — Firefox Tab Capture Bridge
+
+The `chrome.tabCapture` polyfill provides **tab capture functionality** via Firefox's `browser.tabCapture` or `getUserMedia` fallback.
+
+### Supported Methods
+
+| Method | Description |
+|--------|-------------|
+| `capture(options, callback)` | Capture tab content |
+| `getCapturedTabs()` | Get list of captured tabs |
+| `getStream(streamId)` | Get stream by ID (extension) |
+| `stopCapture(streamId)` | Stop capture (extension) |
+
+### Capture Options
+
+| Option | Description |
+|--------|-------------|
+| `audio` | Capture audio (default true) |
+| `video` | Capture video (default true) |
+| `videoConstraints` | Video constraints |
+
+### Events
+
+| Event | Description |
+|-------|-------------|
+| `onStatusChanged` | Capture status changed |
+
+### Usage Example
+
+```javascript
+// Capture tab
+chrome.tabCapture.capture({ audio: true, video: true }, (streamId) => {
+  if (streamId) {
+    // Get the stream
+    const stream = chrome.tabCapture.getStream(streamId);
+    
+    // Use with video element
+    const video = document.createElement('video');
+    video.srcObject = stream;
+    video.play();
+    
+    // Stop later
+    chrome.tabCapture.stopCapture(streamId);
+  }
+});
+```
+
 ## Manifest Transform Details
 
 ### MV3 Transformations
