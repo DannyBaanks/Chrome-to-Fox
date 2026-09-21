@@ -1,0 +1,348 @@
+{
+  "total": 25,
+  "high": 19,
+  "medium": 1,
+  "low": 4,
+  "very_low": 1,
+  "extensions": [
+    {
+      "rank": 1,
+      "name": "Volume Master",
+      "id": "jghecgabfgfdldnmbfkhmffcabddioke",
+      "compatibility": "HIGH",
+      "estimated_score": 0.95,
+      "apis_used": [
+        "chrome.storage",
+        "chrome.tabs",
+        "chrome.runtime"
+      ],
+      "notes": "Simple volume control, likely uses Web Audio API"
+    },
+    {
+      "rank": 2,
+      "name": "Free VPN for Chrome - VPN Proxy VeePN",
+      "id": "majdfhpaihoncoakbjgbdhglocklcgno",
+      "compatibility": "LOW",
+      "estimated_score": 0.3,
+      "apis_used": [
+        "chrome.proxy",
+        "chrome.storage",
+        "chrome.runtime",
+        "chrome.webRequest"
+      ],
+      "notes": "VPN requires native messaging or WebExtension proxy API"
+    },
+    {
+      "rank": 3,
+      "name": "AdBlock — block ads across the web",
+      "id": "gighmmpiobklfepjocnamgkkbiglidom",
+      "compatibility": "HIGH",
+      "estimated_score": 0.95,
+      "apis_used": [
+        "chrome.webRequest",
+        "chrome.storage",
+        "chrome.runtime",
+        "chrome.tabs"
+      ],
+      "notes": "AdBlock has official Firefox version"
+    },
+    {
+      "rank": 4,
+      "name": "uBlock Origin Lite",
+      "id": "ddkjiahejlhfcafbddmgiahcphecmpfh",
+      "compatibility": "HIGH",
+      "estimated_score": 0.95,
+      "apis_used": [
+        "chrome.declarativeNetRequest",
+        "chrome.storage",
+        "chrome.runtime"
+      ],
+      "notes": "uBlock Origin has full Firefox support"
+    },
+    {
+      "rank": 5,
+      "name": "Browsec VPN - Free VPN for Chrome",
+      "id": "omghfjlpggmjjaagoclmmobgdodcjboh",
+      "compatibility": "LOW",
+      "estimated_score": 0.3,
+      "apis_used": [
+        "chrome.proxy",
+        "chrome.storage",
+        "chrome.runtime"
+      ],
+      "notes": "VPN requires native messaging"
+    },
+    {
+      "rank": 6,
+      "name": "Chrome Remote Desktop",
+      "id": "inomeogfingihgjfjlpeplalcfajhgai",
+      "compatibility": "VERY_LOW",
+      "estimated_score": 0.1,
+      "apis_used": [
+        "chrome.runtime",
+        "chrome.desktopCapture",
+        "chrome.identity"
+      ],
+      "notes": "Deeply integrated with Chrome ecosystem"
+    },
+    {
+      "rank": 7,
+      "name": "Grammarly: AI Writing Assistant",
+      "id": "kbfnbcaeplbcioakkpcpgfkobkghlhen",
+      "compatibility": "MEDIUM",
+      "estimated_score": 0.7,
+      "apis_used": [
+        "chrome.runtime",
+        "chrome.storage",
+        "chrome.tabs",
+        "chrome.scripting"
+      ],
+      "notes": "Grammarly has Firefox version but features may differ"
+    },
+    {
+      "rank": 8,
+      "name": "AdGuard AdBlocker",
+      "id": "bgnkhhnnamicmpeenaelnjfhikgbkllg",
+      "compatibility": "HIGH",
+      "estimated_score": 0.95,
+      "apis_used": [
+        "chrome.webRequest",
+        "chrome.storage",
+        "chrome.runtime",
+        "chrome.tabs"
+      ],
+      "notes": "AdGuard has official Firefox version"
+    },
+    {
+      "rank": 9,
+      "name": "Get Token Cookie",
+      "id": "naciaagbkifhpnoodlkhbejjldaiffcm",
+      "compatibility": "HIGH",
+      "estimated_score": 0.9,
+      "apis_used": [
+        "chrome.cookies",
+        "chrome.storage",
+        "chrome.runtime"
+      ],
+      "notes": "Cookie access is well supported in Firefox"
+    },
+    {
+      "rank": 10,
+      "name": "Adblock Plus - free ad blocker",
+      "id": "cfhdojbkjhnklbpkdaibdccddilifddb",
+      "compatibility": "HIGH",
+      "estimated_score": 0.95,
+      "apis_used": [
+        "chrome.webRequest",
+        "chrome.storage",
+        "chrome.runtime"
+      ],
+      "notes": "Adblock Plus has official Firefox version"
+    },
+    {
+      "rank": 11,
+      "name": "Video Download Helper",
+      "id": "lmjnegcaeklhafolokijcfjliaokphfk",
+      "compatibility": "HIGH",
+      "estimated_score": 0.95,
+      "apis_used": [
+        "chrome.downloads",
+        "chrome.storage",
+        "chrome.runtime",
+        "chrome.tabs"
+      ],
+      "notes": "Video DownloadHelper has official Firefox version"
+    },
+    {
+      "rank": 12,
+      "name": "Free VPN Proxy - 1VPN",
+      "id": "akcocjjpkmlniicdeemdceeajlmoabhg",
+      "compatibility": "LOW",
+      "estimated_score": 0.3,
+      "apis_used": [
+        "chrome.proxy",
+        "chrome.storage",
+        "chrome.runtime"
+      ],
+      "notes": "VPN requires native messaging"
+    },
+    {
+      "rank": 13,
+      "name": "Tampermonkey",
+      "id": "dhdgffkkebhmkfjojejmpbldmpobfkfo",
+      "compatibility": "HIGH",
+      "estimated_score": 0.95,
+      "apis_used": [
+        "chrome.storage",
+        "chrome.runtime",
+        "chrome.tabs",
+        "chrome.scripting",
+        "chrome.userScripts"
+      ],
+      "notes": "Tampermonkey has official Firefox version"
+    },
+    {
+      "rank": 14,
+      "name": "Adblock for Youtube™",
+      "id": "cmedhionkhpnakcndndgjdbohmhepckk",
+      "compatibility": "HIGH",
+      "estimated_score": 0.9,
+      "apis_used": [
+        "chrome.webRequest",
+        "chrome.storage",
+        "chrome.runtime"
+      ],
+      "notes": "Ad blocking is well supported"
+    },
+    {
+      "rank": 15,
+      "name": "BTRoblox - Making Roblox Better",
+      "id": "hbkpclpemjeibhioopcebchdmohaieln",
+      "compatibility": "HIGH",
+      "estimated_score": 0.85,
+      "apis_used": [
+        "chrome.storage",
+        "chrome.runtime",
+        "chrome.tabs"
+      ],
+      "notes": "UI modification, likely compatible"
+    },
+    {
+      "rank": 16,
+      "name": "Google Translate",
+      "id": "aapbdbdomjkkjkaonfhkkikfgjllcleb",
+      "compatibility": "HIGH",
+      "estimated_score": 0.95,
+      "apis_used": [
+        "chrome.runtime",
+        "chrome.storage",
+        "chrome.tabs"
+      ],
+      "notes": "Google Translate has Firefox version"
+    },
+    {
+      "rank": 17,
+      "name": "Custom Cursor for Chrome™",
+      "id": "ogdlpmhglpejoiomcodnpjnfgcpmgale",
+      "compatibility": "HIGH",
+      "estimated_score": 0.9,
+      "apis_used": [
+        "chrome.storage",
+        "chrome.runtime",
+        "chrome.tabs",
+        "chrome.scripting"
+      ],
+      "notes": "CSS injection, likely compatible"
+    },
+    {
+      "rank": 18,
+      "name": "Dark Reader",
+      "id": "eimadpbcbfnmbkopoojfekhnkhdbieeh",
+      "compatibility": "HIGH",
+      "estimated_score": 0.95,
+      "apis_used": [
+        "chrome.storage",
+        "chrome.runtime",
+        "chrome.tabs",
+        "chrome.scripting"
+      ],
+      "notes": "Dark Reader has official Firefox version"
+    },
+    {
+      "rank": 19,
+      "name": "Bitwarden Password Manager",
+      "id": "nngceckbapebfimnlniiiahkandclblb",
+      "compatibility": "HIGH",
+      "estimated_score": 0.95,
+      "apis_used": [
+        "chrome.storage",
+        "chrome.runtime",
+        "chrome.tabs",
+        "chrome.identity"
+      ],
+      "notes": "Bitwarden has official Firefox version"
+    },
+    {
+      "rank": 20,
+      "name": "Ad Blocker: Stands AdBlocker",
+      "id": "lgblnfidahcdcjddiepkckcfdhpknnjh",
+      "compatibility": "HIGH",
+      "estimated_score": 0.9,
+      "apis_used": [
+        "chrome.webRequest",
+        "chrome.storage",
+        "chrome.runtime"
+      ],
+      "notes": "Ad blocking is well supported"
+    },
+    {
+      "rank": 21,
+      "name": "Zotero Connector",
+      "id": "ekhagklcjbdpajgpjgmbionohlpdbjgc",
+      "compatibility": "HIGH",
+      "estimated_score": 0.95,
+      "apis_used": [
+        "chrome.storage",
+        "chrome.runtime",
+        "chrome.tabs",
+        "chrome.downloads"
+      ],
+      "notes": "Zotero Connector has official Firefox version"
+    },
+    {
+      "rank": 22,
+      "name": "Volume Booster",
+      "id": "ejkiikneibegknkgimmihdpcbcedgmpo",
+      "compatibility": "HIGH",
+      "estimated_score": 0.9,
+      "apis_used": [
+        "chrome.storage",
+        "chrome.tabs",
+        "chrome.runtime"
+      ],
+      "notes": "Simple volume control, likely compatible"
+    },
+    {
+      "rank": 23,
+      "name": "Ad Block Ninja",
+      "id": "ppfadpgpccljindldolejmgkhgaficka",
+      "compatibility": "HIGH",
+      "estimated_score": 0.9,
+      "apis_used": [
+        "chrome.webRequest",
+        "chrome.storage",
+        "chrome.runtime"
+      ],
+      "notes": "Ad blocking is well supported"
+    },
+    {
+      "rank": 24,
+      "name": "Proton VPN: Fast & Secure",
+      "id": "jplgfhpmjnbigmhklmmbgecoobifkmpa",
+      "compatibility": "LOW",
+      "estimated_score": 0.4,
+      "apis_used": [
+        "chrome.proxy",
+        "chrome.storage",
+        "chrome.runtime",
+        "chrome.identity"
+      ],
+      "notes": "Proton VPN has Firefox version but may differ"
+    },
+    {
+      "rank": 25,
+      "name": "Immersive Translate: AI Web, PDF & Video Translator",
+      "id": "bpoadfkcbjbfhfodiogcnhhhpibjhbnh",
+      "compatibility": "HIGH",
+      "estimated_score": 0.85,
+      "apis_used": [
+        "chrome.storage",
+        "chrome.runtime",
+        "chrome.tabs",
+        "chrome.scripting"
+      ],
+      "notes": "Translation extension, likely compatible"
+    }
+  ],
+  "average_score": 0.7859999999999999
+}
