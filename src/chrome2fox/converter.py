@@ -8,6 +8,7 @@ from typing import Any
 from .analyzer import analyze_extension
 from .manifest_transform import transform_manifest
 from .patcher import patch_js
+from .shims import generate_shims_content, get_required_shims
 
 
 def convert_extension(input_path: Path, output_path: Path) -> dict[str, Any]:
@@ -102,5 +103,16 @@ def convert_extension(input_path: Path, output_path: Path) -> dict[str, Any]:
             output_file.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(file_path, output_file)
             report["files_processed"] += 1
+
+    # Step 6: Inject shims for Chrome-only APIs
+    chrome_only_apis = analysis.get("chrome_only_apis", [])
+    if chrome_only_apis:
+        shim_content = generate_shims_content(chrome_only_apis)
+        if shim_content:
+            shim_path = output_path / "chrome2fox_shims.js"
+            shim_path.write_text(shim_content, encoding="utf-8")
+            report["files_processed"] += 1
+            report["shims_injected"] = len(get_required_shims(chrome_only_apis))
+            report["warnings"].append(f"Injected {report['shims_injected']} polyfill shims for Chrome-only APIs")
 
     return report
