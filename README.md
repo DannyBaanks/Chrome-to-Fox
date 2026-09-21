@@ -1,460 +1,353 @@
-# Chrome-to-Fox 🔥🦊
+<div align="center">
 
-Convert Chrome extensions to Firefox format automatically.
+# 🔥🦊 Chrome-to-Fox
 
-## Features
+### Intelligent Chrome Extension → Firefox Porting Tool
 
-- **Manifest Transform**: Chrome MV2/MV3 → Firefox compatible
-  - `service_worker` → `background.scripts`
-  - `side_panel` → `sidebar_action`
-  - `host_permissions` → `permissions`
-- **API Detection**: Scan JS for `chrome.*` APIs, identify Chrome-only ones
-- **JS Patcher**: Replace `chrome.*` with `browser.*` selectively (28+ API mappings)
-- **Validator**: Check Firefox extension for submission readiness
-- **Package**: Create `.xpi` files ready for AMO
-- **Shims**: Polyfills for 10 Chrome-only APIs with automatic injection
+[![Python 3.12+](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://python.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/Tests-18%20passing-brightgreen.svg)]()
+[![Version](https://img.shields.io/badge/Version-0.1.0-orange.svg)]()
 
-## Installation
+**Convert, test, and repair Chrome extensions for Firefox with AI-powered fixes.**
+
+</div>
+
+---
+
+## What is Chrome-to-Fox?
+
+Chrome-to-Fox is a comprehensive tool that ports Chrome extensions to Firefox. It goes beyond simple syntax replacement — it **converts**, **tests in real Firefox**, and **repairs failures using LLM-powered analysis**.
+
+### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| 🔄 **Deterministic Conversion** | Manifest transform, API patching, shim injection |
+| 🧪 **Real Firefox Testing** | Disposable profiles, runtime probes, console capture |
+| 🤖 **LLM-Powered Repair** | Evidence-based patches from NVIDIA/OpenRouter/local |
+| 📊 **Pattern Detection** | Learns from repairs to build deterministic rules |
+| 📦 **Corpus Building** | Accumulate 500+ extensions for continuous improvement |
+
+---
+
+## Quick Start
+
+### Installation
 
 ```bash
-cd "/home/danny/Development/ISyCo Git/Chrome-to-Fox"
+git clone https://github.com/DannyBaanks/Chrome-to-Fox.git
+cd Chrome-to-Fox
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
 ```
 
-## Usage
-
-### Analyze a Chrome extension
+### Basic Usage
 
 ```bash
+# Analyze compatibility
 chrome2fox analyze /path/to/chrome-extension/
+
+# Convert to Firefox
+chrome2fox convert /path/to/chrome-extension/ -o ./output/
+
+# Validate
+chrome2fox validate ./output/
+
+# Package as .xpi
+chrome2fox package ./output/ -o extension.xpi
 ```
 
-Output:
-```json
-{
-  "manifest_version": 3,
-  "name": "My Extension",
-  "compatibility_score": 0.67,
-  "used_apis": ["chrome.debugger.attach", "chrome.storage.local"],
-  "chrome_only_apis": ["chrome.debugger.attach"],
-  "compatible_apis": ["chrome.storage.local"],
-  "manifest_issues": ["Missing browser_specific_settings.gecko.id"]
-}
-```
-
-### Convert to Firefox
-
-```bash
-chrome2fox convert /path/to/chrome-extension/ -o /path/to/output/
-```
-
-Output:
-```json
-{
-  "status": "success",
-  "files_processed": 8,
-  "js_files_patched": 4,
-  "total_changes": 25,
-  "changes": [
-    {"line": 5, "old": "chrome.storage.local", "new": "browser.storage.local"}
-  ],
-  "shims_injected": 1,
-  "warnings": ["Injected 1 polyfill shims for Chrome-only APIs"]
-}
-```
-
-### Validate Firefox extension
-
-```bash
-chrome2fox validate /path/to/firefox-extension/
-```
-
-Output:
-```json
-{
-  "valid": true,
-  "errors": [],
-  "warnings": ["Missing browser_specific_settings.gecko.id"],
-  "checks": {"manifest_valid": true, "files_exist": true, "no_chrome_apis": true}
-}
-```
-
-### Package as .xpi
-
-```bash
-chrome2fox package /path/to/firefox-extension/ -o extension.xpi
-```
-
-Output:
-```
-Created: extension.xpi (1330 bytes, SHA256: 9687a7b9...)
-```
-
-### Repair with LLM
-
-The `repair` command performs automated testing and LLM-powered fixes:
+### AI-Powered Repair
 
 ```bash
 chrome2fox repair /path/to/chrome-extension/ \
-  -o /path/to/output/ \
+  -o ./output/ \
   --llm-base-url https://integrate.api.nvidia.com/v1 \
   --api-key nvapi-... \
   --model meta/llama-3.1-70b-instruct \
   --max-attempts 3
 ```
 
-Output:
+---
+
+## Architecture
+
 ```
-Chrome-to-Fox Repair
-==================================================
-
-[1/4] Converting extension...
-✅ Converted: 8 files, 4 JS patched
-
-[2/4] Testing in Firefox...
-❌ Tests failed: fail
-
-[3/4] Repairing with LLM...
-  Patch generated: 2 files
-  Patch applied
-  Retesting...
-  ✅ Repair successful on attempt 1!
-
-[4/4] Final Result
-==================================================
-Verdict: PASS
-Attempts: 1
-Duration: 4523ms
-
-📄 Receipt: /path/to/output/repair_receipt.json
-📦 Created: extension.xpi
+┌─────────────────────────────────────────────────────────────┐
+│                    Chrome-to-Fox Pipeline                     │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌────────┐ │
+│  │ ANALYZE  │───▶│ CONVERT  │───▶│   TEST   │───▶│ PACKAGE│ │
+│  │          │    │          │    │          │    │        │ │
+│  │ • Scan   │    │ • Patch  │    │ • Firefox│    │ • .xpi │ │
+│  │ • Score  │    │ • Shim   │    │ • Probes │    │ • SHA  │ │
+│  └──────────┘    └──────────┘    └──────────┘    └────────┘ │
+│                       │               │                      │
+│                       │          ┌────┴────┐                 │
+│                       │         FAIL       PASS              │
+│                       │          │                        │ │
+│                       │          ▼                        │ │
+│                       │    ┌──────────┐                   │ │
+│                       │    │  REPAIR  │                   │ │
+│                       │    │          │                   │ │
+│                       │    │ • LLM    │                   │ │
+│                       │    │ • Patch  │                   │ │
+│                       │    │ • Retest │                   │ │
+│                       │    └──────────┘                   │ │
+│                       │          │                        │ │
+│                       │     ┌────┴────┐                   │ │
+│                       │    PASS      FAIL                 │ │
+│                       │     │         │                   │ │
+│                       │     ▼         ▼                   │ │
+│                       │  ┌─────┐  ┌─────────┐            │ │
+│                       │  │ XPI │  │   PR    │            │ │
+│                       │  └─────┘  └─────────┘            │ │
+│                       │                        │         │ │
+│                       └────────────────────────┘         │ │
+│                                                          │ │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-**Supported LLM Providers:**
-- NVIDIA API (`https://integrate.api.nvidia.com/v1`)
-- OpenRouter (`https://openrouter.ai/api/v1`)
-- OpenAI (`https://api.openai.com/v1`)
-- Local (Ollama, vLLM, etc.)
+---
 
-**Repair Flow:**
-1. Convert extension deterministically
-2. Test in Firefox with disposable profile
-3. If FAIL: build failure envelope
-4. Send envelope to LLM for targeted patch
-5. Apply patch and retest
-6. Repeat until PASS or max attempts (default 3)
+## API Compatibility
 
-**Verdicts:**
-- `PASS` - All tests pass
-- `DEGRADED` - Fewer failures than before, but not perfect
-- `NOT_REPAIRED` - Could not fix within attempt limit
+### Native Firefox Support (No Shims Needed)
 
-**Repair Receipt:**
-Each repair produces a `repair_receipt.json` with:
-- Original/converted/final hashes
-- All repair attempts with patches
-- LLM model and tokens used
-- Timing information
-- Final verdict
+| API | Status | Notes |
+|-----|--------|-------|
+| `chrome.tabs` | ✅ Full | |
+| `chrome.storage` | ✅ Full | |
+| `chrome.runtime` | ✅ Full | |
+| `chrome.alarms` | ✅ Full | |
+| `chrome.cookies` | ✅ Full | |
+| `chrome.action` | ✅ Full | Maps to `browser_action` in MV2 |
+| `chrome.downloads` | ✅ Full | |
+| `chrome.scripting` | ✅ Full | |
 
-## Chrome API Compatibility
+### Shimming Required (Automatic Polyfills)
 
-| API | Firefox Support | Polyfill | Notes |
-|-----|-----------------|----------|-------|
-| chrome.tabs | ✅ Full | No | |
-| chrome.storage | ✅ Full | No | |
-| chrome.runtime | ✅ Full | No | |
-| chrome.alarms | ✅ Full | No | |
-| chrome.cookies | ✅ Full | No | |
-| chrome.action | ✅ Full | No | Maps to browser_action in MV2 |
-| chrome.downloads | ✅ Full | No | |
-| chrome.offscreen | ⚠️ Partial | Yes | Mock with warnings |
-| chrome.tabGroups | ⚠️ Partial | Yes | Storage-based simulation |
-| chrome.declarativeContent | ⚠️ Partial | Yes | Rule storage only |
-| chrome.sidePanel | ⚠️ Partial | Yes | Maps to sidebarAction |
-| chrome.debugger | ⚠️ Partial | Yes | **Full CDP bridge** (see below) |
-| chrome.tabCapture | ⚠️ Partial | Yes | Firefox limited support |
-| chrome.tts | ⚠️ Partial | Yes | Web Speech API fallback |
-| chrome.usb | ⚠️ Partial | Yes | **Full WebUSB bridge** (see below) |
-| chrome.serial | ⚠️ Partial | Yes | **Full Web Serial bridge** (see below) |
-| chrome.hid | ⚠️ Partial | Yes | **Full WebHID bridge** (see below) |
+| API | Shim Type | Bridge Technology |
+|-----|-----------|-------------------|
+| `chrome.debugger` | Full CDP Bridge | `browser.scripting.executeScript` |
+| `chrome.usb` | Full WebUSB Bridge | `navigator.usb` |
+| `chrome.serial` | Full Web Serial Bridge | `navigator.serial` |
+| `chrome.hid` | Full WebHID Bridge | `navigator.hid` |
+| `chrome.tts` | Full Web Speech Bridge | `SpeechSynthesis` API |
+| `chrome.tabCapture` | Firefox + getUserMedia | `browser.tabCapture` |
+| `chrome.offscreen` | Mock | Storage-based |
+| `chrome.tabGroups` | Mock | Storage-based |
+| `chrome.declarativeContent` | Mock | Rule storage |
+| `chrome.sidePanel` | Maps to | `sidebar_action` |
 
-## Debugger Polyfill — Full CDP Bridge
+---
 
-The `chrome.debugger` polyfill provides a **complete Chrome DevTools Protocol (CDP) bridge** to Firefox via `browser.scripting.executeScript`.
+## Debugger Bridge — Chrome DevTools Protocol
 
-### Supported CDP Domains
+The `chrome.debugger` polyfill implements a **complete CDP bridge** to Firefox.
 
-| Domain | Commands | Status |
-|--------|----------|--------|
-| **DOM** | getDocument, getBoxModel, querySelector, querySelectorAll, getOuterHTML, setOuterHTML, getAttributes, setAttribute, removeAttribute, describeNode, getNodeForLocation | ✅ Full |
-| **CSS** | getComputedStyleForNode, getMatchedStylesForNode, getInlineStylesForNode, getStyleSheetText | ✅ Full |
-| **Runtime** | evaluate, getProperties, callFunctionOn, releaseObject | ✅ Full |
-| **Page** | getLayoutMetrics, navigate, reload, captureScreenshot | ✅ Full |
+### Supported Domains
+
+| Domain | Methods | Status |
+|--------|---------|--------|
+| **DOM** | getDocument, querySelector, getOuterHTML, setAttribute, ... | ✅ 11 methods |
+| **CSS** | getComputedStyleForNode, getMatchedStylesForNode, ... | ✅ 4 methods |
+| **Runtime** | evaluate, getProperties, callFunctionOn, ... | ✅ 4 methods |
+| **Page** | getLayoutMetrics, navigate, reload, captureScreenshot | ✅ 4 methods |
+| **Emulation** | setDeviceMetricsOverride, setUserAgentOverride, ... | ✅ 4 methods |
+| **Debugger** | enable, disable, pause, resume, stepOver, ... | ✅ 10 methods |
 | **Network** | getResponseBody, getRequestPostData | ⚠️ Partial |
-| **Emulation** | setDeviceMetricsOverride, clearDeviceMetricsOverride, setUserAgentOverride, setTouchEmulationEnabled | ✅ Full |
-| **Debugger** | enable, disable, stepOver, stepInto, stepOut, resume, pause, setBreakpoint, removeBreakpoint, setPauseOnExceptions | ✅ Full |
 
-### API Methods
-
-| Method | Description |
-|--------|-------------|
-| `attach(target, version)` | Attach debugger to tab |
-| `detach(target)` | Detach debugger |
-| `sendCommand(target, method, params)` | Send CDP command |
-| `getTargets()` | List debuggable targets |
-| `onEvent` | Debugger events |
-| `onDetach` | Detach events |
-
-### Limitations
-
-- **Real debugging** (pause/step) requires DevTools to be open
-- **Network interception** limited (Firefox restriction)
-- **Performance**: Each `sendCommand` executes in page context
-
-## USB Polyfill — Full WebUSB Bridge
-
-The `chrome.usb` polyfill provides a **complete WebUSB bridge** to Firefox via `navigator.usb`.
-
-### Supported Methods
-
-| Method | Description |
-|--------|-------------|
-| `getDevices(options)` | List USB devices |
-| `openDevice(device)` | Open USB device |
-| `closeDevice(handle)` | Close USB device |
-| `claimInterface(handle, interfaceNumber)` | Claim USB interface |
-| `releaseInterface(handle, interfaceNumber)` | Release USB interface |
-| `controlTransfer(handle, transferInfo)` | Control transfer |
-| `bulkTransfer(handle, transferInfo)` | Bulk transfer |
-| `interruptTransfer(handle, transferInfo)` | Interrupt transfer |
-| `isochronousTransfer(handle, transferInfo)` | Isochronous transfer |
-| `resetDevice(handle)` | Reset USB device |
-
-### Events
-
-| Event | Description |
-|-------|-------------|
-| `onConnect` | Device connected |
-| `onDisconnect` | Device disconnected |
-
-## Serial Polyfill — Full Web Serial Bridge
-
-The `chrome.serial` polyfill provides a **complete Web Serial bridge** to Firefox via `navigator.serial`.
-
-### Supported Methods
-
-| Method | Description |
-|--------|-------------|
-| `getDevices()` | List serial ports |
-| `connect(path, options, callback)` | Connect to serial port |
-| `disconnect(connectionId, callback)` | Disconnect from serial port |
-| `send(connectionId, data, callback)` | Send data |
-| `getInfo()` | Get connection info |
-| `update(connectionId, options, callback)` | Update connection options |
-| `getControlSignals(connectionId)` | Get control signals |
-| `setControlSignals(connectionId, signals)` | Set control signals |
-| `flush(connectionId, callback)` | Flush serial port |
-
-### Events
-
-| Event | Description |
-|-------|-------------|
-| `onReceive` | Data received |
-| `onReceiveError` | Receive error |
-| `onConnect` | Port connected |
-| `onDisconnect` | Port disconnected |
-
-## HID Polyfill — Full WebHID Bridge
-
-The `chrome.hid` polyfill provides a **complete WebHID bridge** to Firefox via `navigator.hid`.
-
-### Supported Methods
-
-| Method | Description |
-|--------|-------------|
-| `getDevices(options)` | List HID devices |
-| `connect(vendorId, productId)` | Connect to HID device |
-| `disconnect(connectionId)` | Disconnect from HID device |
-| `send(connectionId, reportId, data)` | Send HID report |
-| `receive(connectionId)` | Receive HID report |
-| `sendFeatureReport(connectionId, reportId, data)` | Send feature report |
-| `receiveFeatureReport(connectionId, reportId)` | Receive feature report |
-
-### Events
-
-| Event | Description |
-|-------|-------------|
-| `onConnect` | Device connected |
-| `onDisconnect` | Device disconnected |
-
-## TTS Polyfill — Full Web Speech Bridge
-
-The `chrome.tts` polyfill provides a **complete Web Speech API bridge** to Firefox.
-
-### Supported Methods
-
-| Method | Description |
-|--------|-------------|
-| `speak(text, options, callback)` | Speak text with options |
-| `stop()` | Stop speaking |
-| `pause()` | Pause speaking |
-| `resume()` | Resume speaking |
-| `isSpeaking(callback)` | Check if speaking |
-| `getVoices(callback)` | Get available voices |
-| `getStream(streamId)` | Get captured stream (extension) |
-| `stopCapture(streamId)` | Stop capture (extension) |
-
-### Options
-
-| Option | Description |
-|--------|-------------|
-| `rate` | Speech rate (0.1 to 10, default 1) |
-| `pitch` | Speech pitch (0 to 2, default 1) |
-| `volume` | Speech volume (0 to 1, default 1) |
-| `lang` | Language code (e.g., 'en-US') |
-| `voiceName` | Voice name to use |
-
-### Events
-
-| Event | Description |
-|-------|-------------|
-| `onPause` | Speech paused |
-| `onResume` | Speech resumed |
-| `onStart` | Speech started |
-| `onEnd` | Speech ended |
-| `onError` | Speech error |
-| `onVoiceUpdate` | Voices loaded |
-
-## TabCapture Polyfill — Firefox Tab Capture Bridge
-
-The `chrome.tabCapture` polyfill provides **tab capture functionality** via Firefox's `browser.tabCapture` or `getUserMedia` fallback.
-
-### Supported Methods
-
-| Method | Description |
-|--------|-------------|
-| `capture(options, callback)` | Capture tab content |
-| `getCapturedTabs()` | Get list of captured tabs |
-| `getStream(streamId)` | Get stream by ID (extension) |
-| `stopCapture(streamId)` | Stop capture (extension) |
-
-### Capture Options
-
-| Option | Description |
-|--------|-------------|
-| `audio` | Capture audio (default true) |
-| `video` | Capture video (default true) |
-| `videoConstraints` | Video constraints |
-
-### Events
-
-| Event | Description |
-|-------|-------------|
-| `onStatusChanged` | Capture status changed |
-
-### Usage Example
+### Usage
 
 ```javascript
-// Capture tab
-chrome.tabCapture.capture({ audio: true, video: true }, (streamId) => {
-  if (streamId) {
-    // Get the stream
-    const stream = chrome.tabCapture.getStream(streamId);
-    
-    // Use with video element
-    const video = document.createElement('video');
-    video.srcObject = stream;
-    video.play();
-    
-    // Stop later
-    chrome.tabCapture.stopCapture(streamId);
-  }
+// Attach to tab
+chrome.debugger.attach({ tabId: 123 }, "1.3", () => {
+  // Get DOM document
+  chrome.debugger.sendCommand(
+    { tabId: 123 },
+    "DOM.getDocument",
+    {},
+    (result) => {
+      console.log(result.root.nodeId);
+    }
+  );
 });
 ```
 
-## Manifest Transform Details
+---
 
-### MV3 Transformations
+## LLM-Powered Repair Engine
 
-| Chrome | Firefox |
-|--------|---------|
-| `background.service_worker` | `background.scripts` |
-| `side_panel.default_path` | `sidebar_action.default_panel` |
-| `host_permissions` | Merged into `permissions` |
+### How It Works
 
-### Automatic Injects
+1. **Test** the converted extension in Firefox
+2. **Capture** failures with full context (manifest, runtime, permissions)
+3. **Generate** evidence-based prompt for LLM
+4. **Apply** targeted patch
+5. **Retest** and repeat until PASS or max attempts
 
-- `browser_specific_settings.gecko.id` (if missing)
-- `chrome2fox_shims.js` in `content_scripts` (if Chrome-only APIs detected)
+### Supported Providers
 
-## Development
+| Provider | Base URL | Example |
+|----------|----------|---------|
+| NVIDIA | `https://integrate.api.nvidia.com/v1` | `meta/llama-3.1-70b-instruct` |
+| OpenRouter | `https://openrouter.ai/api/v1` | `anthropic/claude-3.5-sonnet` |
+| OpenAI | `https://api.openai.com/v1` | `gpt-4o` |
+| Local | `http://localhost:11434/v1` | `llama3` (Ollama) |
+
+### Repair Receipt
+
+Each repair produces a structured receipt:
+
+```json
+{
+  "original_hash": "abc123...",
+  "converted_hash": "def456...",
+  "final_hash": "ghi789...",
+  "verdict": "PASS",
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "failures_before": 3,
+      "failures_after": 0,
+      "duration_ms": 4523,
+      "success": true
+    }
+  ],
+  "model": "meta/llama-3.1-70b-instruct",
+  "total_duration_ms": 5234
+}
+```
+
+---
+
+## Corpus & Pattern Detection
+
+### Build a Corpus
 
 ```bash
-# Run tests
-python -m pytest tests/ -v
+# Collect extensions
+chrome2fox corpus /path/to/extensions/ -o ./corpus/
 
-# Install in development mode
-pip install -e .
-
-# Convert test extension
-chrome2fox convert corpus/html-to-design/ -o output/html-to-design/
-
-# Test extension in Firefox
-python -c "from chrome2fox.test_harness import test_extension; r = test_extension('output/html-to-design'); print(r.overall_status)"
-
-# Repair with LLM
-chrome2fox repair corpus/html-to-design/ \
-  -o output/html-to-design \
-  --llm-base-url https://integrate.api.nvidia.com/v1 \
-  --api-key nvapi-... \
-  --model meta/llama-3.1-70b-instruct \
-  --max-attempts 3
+# View stats
+chrome2fox patterns ./corpus/ -o rules.json
 ```
+
+### Learning Loop
+
+```
+LLM discovers repair
+        │
+        ▼
+Repair demonstrates repeatability
+        │
+        ▼
+Pattern detector identifies rule
+        │
+        ▼
+Rule crystallized into deterministic transform
+        │
+        ▼
+Next extension uses rule (no LLM cost)
+```
+
+---
+
+## CLI Reference
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `analyze` | Scan Chrome extension | `chrome2fox analyze ./ext/` |
+| `convert` | Convert to Firefox | `chrome2fox convert ./ext/ -o ./out/` |
+| `validate` | Validate Firefox extension | `chrome2fox validate ./out/` |
+| `package` | Create .xpi | `chrome2fox package ./out/ -o ext.xpi` |
+| `repair` | Convert + test + repair | `chrome2fox repair ./ext/ -o ./out/ --llm-base-url ...` |
+| `corpus` | Build extension corpus | `chrome2fox corpus ./exts/ -o ./corpus/` |
+| `patterns` | Detect repair patterns | `chrome2fox patterns ./corpus/ -o rules.json` |
+
+---
 
 ## Project Structure
 
 ```
 Chrome-to-Fox/
 ├── src/chrome2fox/
-│   ├── __init__.py          # Package init
-│   ├── cli.py               # CLI interface
-│   ├── analyzer.py          # API detection & compatibility scoring
-│   ├── manifest_transform.py # Chrome → Firefox manifest conversion
-│   ├── patcher.py           # JS chrome.* → browser.* replacement
-│   ├── converter.py         # Full conversion pipeline
-│   ├── validator.py         # Firefox extension validation
-│   ├── package.py           # .xpi packaging
-│   └── shims/               # Chrome-only API polyfills
-│       ├── __init__.py      # Shim registry + injection
+│   ├── __init__.py              # Package metadata
+│   ├── cli.py                   # CLI interface (7 commands)
+│   ├── analyzer.py              # API detection & scoring
+│   ├── manifest_transform.py    # Manifest conversion
+│   ├── patcher.py               # JS patching (28+ APIs)
+│   ├── converter.py             # Conversion pipeline
+│   ├── validator.py             # Firefox validation
+│   ├── package.py               # .xpi packaging
+│   ├── test_harness.py          # Firefox test harness
+│   ├── failure_envelope.py      # Error normalization
+│   ├── llm_client.py            # OpenAI-compatible client
+│   ├── repair_engine.py         # LLM repair loop
+│   ├── pr_generator.py          # Evidence-based PRs
+│   ├── pattern_detector.py      # Pattern detection
+│   ├── corpus_builder.py        # Corpus management
+│   └── shims/                   # 10 polyfill shims
+│       ├── debugger_polyfill.js # Full CDP bridge (1100+ lines)
+│       ├── usb_polyfill.js      # WebUSB bridge
+│       ├── serial_polyfill.js   # Web Serial bridge
+│       ├── hid_polyfill.js      # WebHID bridge
+│       ├── tts_polyfill.js      # Web Speech bridge
+│       ├── tabcapture_polyfill.js
 │       ├── offscreen_polyfill.js
 │       ├── tabgroups_polyfill.js
 │       ├── declarativecontent_polyfill.js
-│       ├── sidepanel_polyfill.js
-│       ├── debugger_polyfill.js    # Full CDP bridge (~1100 lines)
-│       ├── tabcapture_polyfill.js
-│       ├── tts_polyfill.js
-│       ├── usb_polyfill.js
-│       ├── serial_polyfill.js
-│       └── hid_polyfill.js
-├── tests/                   # Unit tests (18 tests)
-├── corpus/                  # Test extensions
-├── output/                  # Converted extensions
-├── evidence/                # Benchmarks & hashes
-├── pyproject.toml
-├── README.md
-├── GUIA.md                  # Spanish guide
-└── CHANGELOG.md
+│       └── sidepanel_polyfill.js
+├── tests/                       # 18 unit tests
+├── corpus/                      # Test extensions
+├── output/                      # Converted extensions
+└── pyproject.toml
 ```
 
-## Test Results
+---
 
+## Development
+
+```bash
+# Install dev dependencies
+pip install -e ".[dev]"
+
+# Run tests
+python -m pytest tests/ -v
+
+# Run specific test
+python -m pytest tests/test_analyzer.py -v
+
+# Check coverage
+python -m pytest tests/ --cov=chrome2fox
 ```
-18 passed in 0.04s
-```
+
+---
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing`)
+5. Open a Pull Request
+
+---
 
 ## License
 
-MIT
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+<div align="center">
+
+**Built with ❤️ for the Firefox extension ecosystem**
+
+[Report Bug](https://github.com/DannyBaanks/Chrome-to-Fox/issues) · [Request Feature](https://github.com/DannyBaanks/Chrome-to-Fox/issues) · [Documentation](https://github.com/DannyBaanks/Chrome-to-Fox)
+
+</div>
