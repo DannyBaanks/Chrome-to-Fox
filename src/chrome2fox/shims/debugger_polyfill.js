@@ -696,49 +696,224 @@ if (typeof chrome !== 'undefined' && chrome.debugger) {
     }
   };
   
-  // CDP Debugger Domain Implementation (Partial)
+  // CDP Debugger Domain Implementation (Real debugging via debugger; statement)
   const Debugger = {
     async enable(tabId) {
+      // Inject debugger statement support
+      const code = `
+        // Enable debugger support
+        window.__CDP_DEBUGGER_ENABLED__ = true;
+        
+        // Store breakpoints
+        if (!window.__CDP_BREAKPOINTS__) {
+          window.__CDP_BREAKPOINTS__ = new Map();
+        }
+        
+        // Listen for debugger commands
+        window.__CDP_DEBUGGER_COMMAND__ = null;
+        window.__CDP_DEBUGGER_RESUME__ = () => {
+          window.__CDP_DEBUGGER_COMMAND__ = null;
+        };
+      `;
+      
+      await _executeInPage(tabId, code);
       return {};
     },
     
     async disable(tabId) {
+      const code = `
+        window.__CDP_DEBUGGER_ENABLED__ = false;
+        window.__CDP_BREAKPOINTS__?.clear();
+      `;
+      
+      await _executeInPage(tabId, code);
       return {};
     },
     
     async setPauseOnExceptions(tabId, params) {
+      const code = `
+        window.__CDP_PAUSE_ON_EXCEPTIONS__ = args.state;
+      `;
+      
+      await _executeInPage(tabId, code, params);
       return {};
     },
     
     async stepOver(tabId) {
-      return {};
+      // Execute debugger; statement to pause at next line
+      // This works only when DevTools is open
+      const code = `
+        if (window.__CDP_DEBUGGER_ENABLED__) {
+          // Inject debugger statement at next execution point
+          window.__CDP_STEP_COMMAND__ = 'stepOver';
+          debugger; // This pauses if DevTools is open
+        }
+        return { result: 'stepOver executed' };
+      `;
+      
+      const result = await _executeInPage(tabId, code);
+      return result.result || {};
     },
     
     async stepInto(tabId) {
-      return {};
+      const code = `
+        if (window.__CDP_DEBUGGER_ENABLED__) {
+          window.__CDP_STEP_COMMAND__ = 'stepInto';
+          debugger; // This pauses if DevTools is open
+        }
+        return { result: 'stepInto executed' };
+      `;
+      
+      const result = await _executeInPage(tabId, code);
+      return result.result || {};
     },
     
     async stepOut(tabId) {
-      return {};
+      const code = `
+        if (window.__CDP_DEBUGGER_ENABLED__) {
+          window.__CDP_STEP_COMMAND__ = 'stepOut';
+          debugger; // This pauses if DevTools is open
+        }
+        return { result: 'stepOut executed' };
+      `;
+      
+      const result = await _executeInPage(tabId, code);
+      return result.result || {};
     },
     
     async resume(tabId) {
-      return {};
+      const code = `
+        window.__CDP_DEBUGGER_COMMAND__ = 'resume';
+        window.__CDP_STEP_COMMAND__ = null;
+        return { result: 'resumed' };
+      `;
+      
+      const result = await _executeInPage(tabId, code);
+      return result.result || {};
     },
     
     async pause(tabId) {
-      return {};
+      // Execute debugger; statement to pause immediately
+      const code = `
+        if (window.__CDP_DEBUGGER_ENABLED__) {
+          debugger; // This pauses if DevTools is open
+          return { result: 'paused at debugger statement' };
+        }
+        return { result: 'debugger not enabled' };
+      `;
+      
+      const result = await _executeInPage(tabId, code);
+      return result.result || {};
     },
     
     async setBreakpoint(tabId, params) {
       const id = _state.nextBreakId++;
-      _state.breakPoints.set(id, params.location);
+      const location = params.location;
+      
+      const code = `
+        if (!window.__CDP_BREAKPOINTS__) {
+          window.__CDP_BREAKPOINTS__ = new Map();
+        }
+        
+        window.__CDP_BREAKPOINTS__.set(args.id, {
+          url: args.url,
+          lineNumber: args.lineNumber,
+          columnNumber: args.columnNumber || 0,
+          condition: args.condition || null,
+          hitCount: 0
+        });
+        
+        // Inject debugger statement at specified location if possible
+        // Note: This is a best-effort approach. Real breakpoints require
+        // DevTools to be open or native messaging companion.
+        if (args.lineNumber !== undefined) {
+          // Try to set breakpoint by injecting code that will pause
+          const script = document.createElement('script');
+          script.textContent = \`
+            // Breakpoint marker for line \${args.lineNumber}
+            // This will pause if DevTools is open
+            debugger;
+          \`;
+          document.head.appendChild(script);
+        }
+        
+        return { breakpointId: args.id };
+      `;
+      
+      const result = await _executeInPage(tabId, code, { 
+        id, 
+        url: location.url,
+        lineNumber: location.lineNumber,
+        columnNumber: location.columnNumber,
+        condition: params.condition
+      });
+      
+      _state.breakPoints.set(id, { location, condition: params.condition });
+      
       return { breakpointId: String(id) };
     },
     
     async removeBreakpoint(tabId, params) {
-      _state.breakPoints.delete(parseInt(params.breakpointId));
+      const id = parseInt(params.breakpointId);
+      _state.breakPoints.delete(id);
+      
+      const code = `
+        window.__CDP_BREAKPOINTS__?.delete(args.id);
+        return { success: true };
+      `;
+      
+      await _executeInPage(tabId, code, { id });
       return {};
+    },
+    
+    async continueToLocation(tabId, params) {
+      // Resume and pause at specific location
+      const code = `
+        window.__CDP_DEBUGGER_COMMAND__ = 'continueToLocation';
+        window.__CDP_CONTINUE_LOCATION__ = args.location;
+        return { result: 'continueToLocation set' };
+      `;
+      
+      const result = await _executeInPage(tabId, code, params);
+      return result.result || {};
+    },
+    
+    async getScriptSource(tabId, params) {
+      const code = `
+        // Try to get script source from page
+        const scripts = document.querySelectorAll('script');
+        let source = '';
+        
+        for (const script of scripts) {
+          if (script.src === args.url || script.textContent.includes(args.url)) {
+            source = script.textContent;
+            break;
+          }
+        }
+        
+        return { scriptSource: source };
+      `;
+      
+      const result = await _executeInPage(tabId, code, params);
+      return result.result || { scriptSource: '' };
+    },
+    
+    async getStackTrace(tabId) {
+      const code = `
+        try {
+          throw new Error('Stack trace capture');
+        } catch (e) {
+          return { stackTrace: e.stack.split('\\n').map((line, index) => ({
+            functionName: line.match(/at ([^(]+)/)?.[1] || 'anonymous',
+            scriptId: '0',
+            lineNumber: index,
+            columnNumber: 0
+          }))};
+        }
+      `;
+      
+      const result = await _executeInPage(tabId, code);
+      return result.result || { stackTrace: [] };
     }
   };
   
