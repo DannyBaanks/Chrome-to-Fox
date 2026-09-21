@@ -15,9 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Adds `browser_specific_settings.gecko.id` automatically
   - Removes Chrome-specific fields (`key`, `minimum_chrome_version`)
   - Moves `host_permissions` to `permissions` for MV3
+  - Converts `service_worker` to `background.scripts` (Firefox MV3)
+  - Converts `side_panel` to `sidebar_action` (Firefox)
 - **JS Patcher**: Selective `chrome.*` → `browser.*` replacement
   - Preserves `chrome-extension://` URLs
-  - Only patches known compatible APIs
+  - Only patches known compatible APIs (28+ API mappings)
   - Reports all changes with line numbers
 - **Validator**: Firefox extension validation
   - Manifest schema validation
@@ -28,26 +30,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - SHA256 hash calculation
   - File size reporting
 - **CLI**: Four commands (`analyze`, `convert`, `validate`, `package`)
-- **Shims**: Polyfills for 10 Chrome-only APIs
+- **Shims**: Polyfills for 10 Chrome-only APIs with automatic injection
   - `chrome.offscreen` → Mock with warnings
   - `chrome.tabGroups` → Storage-based simulation
   - `chrome.declarativeContent` → Rule storage only
   - `chrome.sidePanel` → Maps to sidebarAction
-  - `chrome.debugger` → No-op with warnings
+  - `chrome.debugger` → **Full CDP bridge** (DOM, CSS, Runtime, Page, Network, Emulation, Debugger domains)
   - `chrome.tabCapture` → No-op with warnings
   - `chrome.tts` → Web Speech API fallback
   - `chrome.usb` → No-op with warnings
   - `chrome.serial` → No-op with warnings
   - `chrome.hid` → No-op with warnings
-- **Corpus**: 6 test extensions
-  - Simple popup
-  - Content script
-  - Background worker
-  - Popup UI
-  - Permissions only
-  - Has offscreen API
+- **Debugger Polyfill**: Complete Chrome DevTools Protocol (CDP) bridge
+  - DOM domain: getDocument, getBoxModel, querySelector, querySelectorAll, getOuterHTML, setOuterHTML, getAttributes, setAttribute, removeAttribute, describeNode, getNodeForLocation
+  - CSS domain: getComputedStyleForNode, getMatchedStylesForNode, getInlineStylesForNode, getStyleSheetText
+  - Runtime domain: evaluate, getProperties, callFunctionOn, releaseObject
+  - Page domain: getLayoutMetrics, navigate, reload, captureScreenshot
+  - Network domain: getResponseBody, getRequestPostData (partial)
+  - Emulation domain: setDeviceMetricsOverride, clearDeviceMetricsOverride, setUserAgentOverride, setTouchEmulationEnabled
+  - Debugger domain: enable, disable, stepOver, stepInto, stepOut, resume, pause, setBreakpoint, removeBreakpoint, setPauseOnExceptions
+- **Manifest Injection**: Shims automatically injected into `content_scripts`
+- **Corpus**: Test extensions including html.to.design
 - **Tests**: 18 unit tests passing
-- **Documentation**: README.md, GUIA.md (Spanish)
+- **Documentation**: README.md, GUIA.md (Spanish), CHANGELOG.md
 
 ### Fixed
 
