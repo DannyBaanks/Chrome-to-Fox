@@ -114,5 +114,48 @@ def convert_extension(input_path: Path, output_path: Path) -> dict[str, Any]:
             report["files_processed"] += 1
             report["shims_injected"] = len(get_required_shims(chrome_only_apis))
             report["warnings"].append(f"Injected {report['shims_injected']} polyfill shims for Chrome-only APIs")
+            
+            # Inject shims into manifest content_scripts
+            _inject_shims_into_manifest(firefox_manifest, shim_path.name)
+            
+            # Re-write manifest with shims injected
+            with open(manifest_output, "w", encoding="utf-8") as f:
+                json.dump(firefox_manifest, f, indent=2, ensure_ascii=False)
 
     return report
+
+
+def _inject_shims_into_manifest(manifest: dict, shim_filename: str) -> None:
+    """Inject shims script into manifest's content_scripts.
+    
+    This ensures the polyfill shims are loaded before any other scripts.
+    
+    Args:
+        manifest: The manifest dictionary to modify
+        shim_filename: Name of the shims file (e.g., 'chrome2fox_shims.js')
+    """
+    # Ensure content_scripts exists
+    if "content_scripts" not in manifest:
+        manifest["content_scripts"] = []
+    
+    # Find existing content_scripts entry that matches all URLs or inject new one
+    all_urls_entry = None
+    for entry in manifest["content_scripts"]:
+        if "<all_urls>" in entry.get("matches", []):
+            all_urls_entry = entry
+            break
+    
+    if all_urls_entry:
+        # Add shims to existing entry
+        js_files = all_urls_entry.get("js", [])
+        if shim_filename not in js_files:
+            # Prepend shims so they load first
+            all_urls_entry["js"] = [shim_filename] + js_files
+    else:
+        # Create new content_scripts entry for shims
+        manifest["content_scripts"].insert(0, {
+            "matches": ["<all_urls>"],
+            "js": [shim_filename],
+            "run_at": "document_start",
+            "all_frames": True
+        })

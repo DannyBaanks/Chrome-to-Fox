@@ -75,9 +75,26 @@ def _name_to_gecko_id(name: str) -> str:
 
 def _transform_mv3(manifest: dict) -> dict:
     """Transform MV3 manifest for Firefox compatibility."""
-    # Firefox MV3 supports both service_worker and background scripts
-    # No change needed for background
-
+    # Convert service_worker to background.scripts (Firefox MV3 doesn't support service_worker)
+    if "background" in manifest:
+        bg = manifest["background"]
+        if "service_worker" in bg:
+            # Firefox requires scripts array, not service_worker
+            service_worker = bg.pop("service_worker")
+            # Convert to scripts array
+            if "scripts" not in bg:
+                bg["scripts"] = [service_worker]
+            # Remove type: module if present (Firefox doesn't support it in MV3 background)
+            bg.pop("type", None)
+    
+    # Convert side_panel to sidebar_action (Firefox doesn't support side_panel)
+    if "side_panel" in manifest:
+        side_panel = manifest.pop("side_panel")
+        manifest["sidebar_action"] = {
+            "default_title": side_panel.get("default_title", ""),
+            "default_panel": side_panel.get("default_path", side_panel.get("default_panel", ""))
+        }
+    
     # Convert host_permissions to permissions if needed
     if "host_permissions" in manifest:
         host_perms = manifest.pop("host_permissions")
