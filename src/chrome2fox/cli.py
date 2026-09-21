@@ -172,6 +172,20 @@ def main():
     p_repair.add_argument("--package-output", help="Package as .xpi if repair succeeds")
     p_repair.set_defaults(func=cmd_repair)
 
+    # corpus
+    p_corpus = subparsers.add_parser("corpus", help="Build extension corpus")
+    p_corpus.add_argument("input", help="Directory containing Chrome extensions")
+    p_corpus.add_argument("-o", "--output", required=True, help="Corpus output directory")
+    p_corpus.add_argument("--source-url", help="Source URL for extensions")
+    p_corpus.set_defaults(func=cmd_corpus)
+
+    # patterns
+    p_patterns = subparsers.add_parser("patterns", help="Detect repair patterns")
+    p_patterns.add_argument("input", help="Corpus directory with repair receipts")
+    p_patterns.add_argument("-o", "--output", help="Output file for rules")
+    p_patterns.add_argument("--min-confidence", type=float, default=0.6, help="Minimum confidence (default: 0.6)")
+    p_patterns.set_defaults(func=cmd_patterns)
+
     args = parser.parse_args()
     if not args.command:
         parser.print_help()
