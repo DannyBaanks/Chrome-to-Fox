@@ -1,0 +1,62 @@
+# Chrome-to-Fox
+
+Chrome extension to Firefox extension converter.
+
+## Quick Start
+
+```bash
+# Install
+cd "/home/danny/Development/ISyCo Git/Chrome-to-Fox"
+pip install -e .
+
+# Analyze
+chrome2fox analyze /path/to/extension/
+
+# Convert
+chrome2fox convert /path/to/extension/ -o output/
+
+# Validate
+chrome2fox validate output/
+
+# Package
+chrome2fox package output/ -o extension.xpi
+```
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `analyze` | Scan Chrome extension for Firefox compatibility |
+| `convert` | Transform Chrome extension to Firefox format |
+| `validate` | Check Firefox extension for errors |
+| `package` | Create .xpi file for AMO submission |
+
+## Examples
+
+### Simple Extension
+
+```bash
+chrome2fox convert corpus/simple-popup/ -o output/simple-popup/
+# Output: manifest.json patched with gecko settings, JS patched
+```
+
+### Extension with Chrome-only APIs
+
+```bash
+chrome2fox analyze corpus/has-offscreen/
+# Output: warnings about chrome.offscreen (Chrome-only API)
+```
+
+## Traps
+
+1. **Missing gecko.id**: Firefox requires `browser_specific_settings.gecko.id` — the converter adds it automatically
+2. **chrome-extension:// URLs**: These are preserved (not patched) as they're part of the extension's identity
+3. **Service Workers**: Firefox MV3 supports both `service_worker` and `background.scripts`
+4. **host_permissions**: In MV3, these are moved to `permissions` for Firefox compatibility
+
+## Limitations
+
+- Does not convert Native Messaging extensions (requires separate native app)
+- Does not support remotely hosted code (prohibited in MV3)
+- Chrome-only APIs get polyfills but may not work identically
+- Does not modify extension behavior — only format conversion

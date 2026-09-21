@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Permissions Only Extension",
+  "version": "1.0.0",
+  "description": "Extension testing various permissions",
+  "permissions": [
+    "storage",
+    "tabs",
+    "activeTab",
+    "cookies",
+    "history",
+    "bookmarks",
+    "notifications",
+    "alarms",
+    "identity"
+  ],
+  "host_permissions": [
+    "*://*.example.com/*",
+    "*://*.api.example.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}

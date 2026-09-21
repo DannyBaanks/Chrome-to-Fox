@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Popup UI</title>
+  <style>
+    body { width: 300px; padding: 15px; font-family: Arial, sans-serif; }
+    .header { background: #2196F3; color: white; padding: 10px; border-radius: 5px; margin-bottom: 15px; }
+    .section { margin-bottom: 15px; }
+    .section h3 { margin: 0 0 10px 0; color: #333; }
+    input, button { width: 100%; padding: 8px; margin-bottom: 10px; box-sizing: border-box; }
+    button { background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #45a049; }
+    .status { padding: 10px; background: #f5f5f5; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h2>Popup UI Extension</h2>
+  </div>
+  
+  <div class="section">
+    <h3>Settings</h3>
+    <input type="text" id="apiKey" placeholder="API Key">
+    <input type="number" id="interval" placeholder="Check interval (minutes)" value="5">
+    <button id="saveBtn">Save Settings</button>
+  </div>
+  
+  <div class="section">
+    <h3>Status</h3>
+    <div class="status">
+      <p>Last check: <span id="lastCheck">Never</span></p>
+      <p>Items processed: <span id="count">0</span></p>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
