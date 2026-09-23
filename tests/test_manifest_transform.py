@@ -38,7 +38,11 @@ def test_transform_removes_chrome_fields():
 
 
 def test_transform_mv3_host_permissions():
-    """Test that MV3 host_permissions are moved to permissions."""
+    """Test that MV3 host_permissions are preserved (Firefox supports them).
+
+    Merging them into "permissions" is invalid per web-ext lint
+    (MANIFEST_PERMISSIONS: Invalid permissions "<all_urls>").
+    """
     manifest = {
         "manifest_version": 3,
         "name": "Test",
@@ -49,8 +53,34 @@ def test_transform_mv3_host_permissions():
 
     result = transform_manifest(manifest)
 
-    assert "host_permissions" not in result
-    assert "*://*.example.com/*" in result["permissions"]
+    assert result["host_permissions"] == ["*://*.example.com/*"]
+    assert result["permissions"] == ["storage"]
+
+
+def test_transform_dnr_bumps_min_version():
+    """Test that DNR usage stamps strict_min_version 113.0 (not 109.0)."""
+    manifest = {
+        "manifest_version": 3,
+        "name": "Test",
+        "version": "1.0.0",
+        "permissions": ["declarativeNetRequest"],
+        "declarative_net_request": {
+            "rule_resources": [{"id": "ads", "enabled": True, "path": "rules.json"}]
+        },
+    }
+
+    result = transform_manifest(manifest)
+
+    assert result["browser_specific_settings"]["gecko"]["strict_min_version"] == "113.0"
+
+
+def test_transform_no_dnr_keeps_min_version_109():
+    """Test that non-DNR extensions keep strict_min_version 109.0."""
+    manifest = {"manifest_version": 3, "name": "Test", "version": "1.0.0"}
+
+    result = transform_manifest(manifest)
+
+    assert result["browser_specific_settings"]["gecko"]["strict_min_version"] == "109.0"
 
 
 def test_transform_preserves_existing_gecko():

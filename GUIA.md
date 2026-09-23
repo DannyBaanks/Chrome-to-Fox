@@ -52,7 +52,7 @@ chrome2fox analyze corpus/has-offscreen/
 1. **Missing gecko.id**: Firefox requires `browser_specific_settings.gecko.id` — the converter adds it automatically
 2. **chrome-extension:// URLs**: These are preserved (not patched) as they're part of the extension's identity
 3. **Service Workers**: Firefox MV3 supports both `service_worker` and `background.scripts`
-4. **host_permissions**: In MV3, these are moved to `permissions` for Firefox compatibility
+4. **host_permissions**: Firefox MV3 supports `host_permissions` natively — the converter keeps them as-is (merging into `permissions` is invalid per `web-ext lint`)
 
 ## Limitations
 

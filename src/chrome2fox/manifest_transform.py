@@ -50,9 +50,22 @@ def _generate_gecko_settings(manifest: dict) -> dict:
     return {
         "gecko": {
             "id": ext_id,
-            "strict_min_version": "109.0"
+            "strict_min_version": _min_firefox_version(manifest)
         }
     }
+
+
+def _min_firefox_version(manifest: dict) -> str:
+    """Minimum Firefox supporting the manifest's keys (web-ext lint evidence).
+
+    declarativeNetRequest landed in Firefox 113; stamping 109.0 with DNR
+    keys produces PERMISSION/KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION notices.
+    """
+    if "declarative_net_request" in manifest:
+        return "113.0"
+    if "declarativeNetRequest" in manifest.get("permissions", []):
+        return "113.0"
+    return "109.0"
 
 
 def _generate_gecko_id(manifest: dict) -> dict:
@@ -95,16 +108,9 @@ def _transform_mv3(manifest: dict) -> dict:
             "default_panel": side_panel.get("default_path", side_panel.get("default_panel", ""))
         }
     
-    # Convert host_permissions to permissions if needed
-    if "host_permissions" in manifest:
-        host_perms = manifest.pop("host_permissions")
-        existing_perms = manifest.get("permissions", [])
-        # Add host permissions to the main permissions array
-        for perm in host_perms:
-            if perm not in existing_perms:
-                existing_perms.append(perm)
-        manifest["permissions"] = existing_perms
-
+    # Firefox MV3 supports host_permissions natively: keep them as-is.
+    # (Merging them into "permissions" produces an INVALID manifest per
+    # web-ext lint: MANIFEST_PERMISSIONS Invalid permissions "<all_urls>".)
     return manifest
 
 

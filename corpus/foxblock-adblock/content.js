@@ -29,7 +29,7 @@
   const obs = new MutationObserver((muts) => {
     let n = 0;
     for (const m of muts) for (const node of m.addedNodes) {
-      if (node.nodeType === 1) { n += sweep(node); if (node.matches && SELECTORS.some((s) => { try { return node.matches(s); } catch (e) { return false; } })) { node.style.setProperty("display", "none", "important"); n++; } }
+      if (node.nodeType === 1) { n += sweep(node); if (node.matches && SELECTORS.some((s) => { try { return node.matches(s); } catch (e) { return false; } })) { node.style.setProperty("display", "none", "important"); node.dataset.foxblockHidden = "1"; n++; } }
     }
     if (n) report(n);
   });
