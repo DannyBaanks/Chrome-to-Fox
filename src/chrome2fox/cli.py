@@ -40,6 +40,22 @@ def cmd_package(args):
     return 0
 
 
+def cmd_sign(args):
+    """Sign a Firefox extension via AMO (web-ext sign)."""
+    from .signer import sign_extension
+    result = sign_extension(
+        Path(args.input),
+        api_key=args.api_key,
+        api_secret=args.api_secret,
+        channel=args.channel,
+        artifacts_dir=Path(args.output) if args.output else None,
+        timeout_seconds=args.timeout,
+    )
+    # Redacted by construction: signer never returns the secret.
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+    return 0 if result.get("status") == "success" else 1
+
+
 def cmd_repair(args):
     """Convert and repair a Chrome extension with LLM-powered fixes."""
     from .converter import convert_extension
@@ -355,6 +371,17 @@ def main():
     p_package.add_argument("input", help="Path to Firefox extension directory")
     p_package.add_argument("-o", "--output", required=True, help="Output .xpi path")
     p_package.set_defaults(func=cmd_package)
+
+    # sign
+    p_sign = subparsers.add_parser("sign", help="Sign via AMO so Firefox installs it permanently")
+    p_sign.add_argument("input", help="Path to Firefox extension directory")
+    p_sign.add_argument("-o", "--output", help="Artifacts dir for the signed .xpi")
+    p_sign.add_argument("--channel", default="unlisted", choices=["unlisted", "listed"],
+                        help="AMO channel (default: unlisted)")
+    p_sign.add_argument("--api-key", help="AMO JWT issuer (or AMO_API_KEY env)")
+    p_sign.add_argument("--api-secret", help="AMO JWT secret (or AMO_API_SECRET env)")
+    p_sign.add_argument("--timeout", type=int, default=300, help="Seconds to wait for AMO (default: 300)")
+    p_sign.set_defaults(func=cmd_sign)
 
     # repair
     p_repair = subparsers.add_parser("repair", help="Convert and repair with LLM")

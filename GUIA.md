@@ -30,6 +30,7 @@ chrome2fox package output/ -o extension.xpi
 | `convert` | Transform Chrome extension to Firefox format |
 | `validate` | Check Firefox extension for errors |
 | `package` | Create .xpi file for AMO submission |
+| `sign` | Submit to AMO and fetch the signed .xpi (needs AMO_API_KEY + AMO_API_SECRET) |
 
 ## Examples
 
@@ -46,6 +47,24 @@ chrome2fox convert corpus/simple-popup/ -o output/simple-popup/
 chrome2fox analyze corpus/has-offscreen/
 # Output: warnings about chrome.offscreen (Chrome-only API)
 ```
+
+## Signing (pipeline automatico)
+
+```bash
+# 1. Claves (una vez): https://addons.mozilla.org/developers/addon/api/key/
+export AMO_API_KEY="jwt-issuer..."
+export AMO_API_SECRET="jwt-secret..."
+
+# 2. Pipeline completo
+chrome2fox convert corpus/foxblock-adblock -o output/foxblock-adblock-firefox
+chrome2fox validate output/foxblock-adblock-firefox
+chrome2fox sign output/foxblock-adblock-firefox -o output/signed --channel unlisted
+# El .xpi firmado cae en output/signed/ y se instala PERMANENTE (doble clic o about:addons)
+```
+
+- `unlisted` = firmado sin publicar (para ti / tu gente). `listed` = tienda publica.
+- Las claves viajan por entorno al proceso hijo, nunca en argv ni en logs.
+- AMO tarda 1-5 min la primera vez; sube `--timeout` si corta antes.
 
 ## Traps
 
