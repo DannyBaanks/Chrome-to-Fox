@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><style>
+body{font-family:system-ui,sans-serif;min-width:240px;padding:12px}
+.row{display:flex;align-items:center;gap:8px;margin:8px 0}
+#count{font-size:28px;font-weight:700}
+button{padding:6px 10px;cursor:pointer}
+small{color:#666}
+</style></head>
+<body>
+<h3>🦊 FoxBlock</h3>
+<div class="row"><input type="checkbox" id="enabled"><label for="enabled">Bloqueo activado</label></div>
+<div class="row"><span id="count">0</span><span>elementos ocultos</span></div>
+<div class="row"><button id="reset">Reiniciar contador</button></div>
+<small>DNR (red) + filtro cosmetico. Convierte con chrome2fox.</small>
+<script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "FoxBlock Minimal Adblocker",
+  "version": "0.1.0",
+  "description": "Bloqueador minimo MV3 de ejemplo para convertir con Chrome-to-Fox (DNR + filtro cosmetico).",
+  "permissions": [
+    "declarativeNetRequest",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ads",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "FoxBlock"
+  }
+}
