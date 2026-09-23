@@ -134,3 +134,104 @@ def sign_extension(
     result["status"] = "success"
     result["signed_xpi"] = str(signed)
     return result
+
+
+# ---------------------------------------------------------------------------
+# Wait + download: completa el pipeline cuando AMO termina la revision.
+# ---------------------------------------------------------------------------
+
+def _amo_get(path: str, api_key: str, api_secret: str, amo_base_url: str | None) -> Any:
+    """GET autenticado (JWT) a la API v5 de AMO. Sin secretos en el retorno."""
+    import json as _json
+    import time as _time
+    import urllib.request as _url
+    import jwt as _jwt
+
+    base = (amo_base_url or "https://addons.mozilla.org/api/v5/").rstrip("/") + "/"
+    now = int(_time.time())
+    token = _jwt.encode({"iss": api_key, "iat": now, "exp": now + 300}, api_secret, algorithm="HS256")
+    req = _url.Request(base + path.lstrip("/"), headers={"Authorization": f"JWT {token}"})
+    with _url.urlopen(req, timeout=30) as res:
+        return _json.load(res)
+
+
+def wait_signed(
+    guid_or_id: str,
+    version: str,
+    api_key: str | None = None,
+    api_secret: str | None = None,
+    artifacts_dir: Path | None = None,
+    poll_seconds: int = 120,
+    max_waits: int = 15,
+    amo_base_url: str | None = None,
+) -> dict[str, Any]:
+    """Espera la revision de AMO y descarga el .xpi firmado.
+
+    Sondea versions/ hasta que file.status salga de la cola de revision
+    (unreviewed/awaiting_review) y descarga el fichero firmado con el JWT.
+    Las credenciales solo viajan en el header Authorization, nunca en disco.
+    """
+    import time as _time
+    import urllib.request as _url
+
+    result: dict[str, Any] = {
+        "guid": guid_or_id, "version": version,
+        "status": "pending", "signed_xpi": None, "errors": [],
+    }
+    key = api_key or os.environ.get("AMO_API_KEY", "")
+    secret = api_secret or os.environ.get("AMO_API_SECRET", "")
+    if not key or not secret:
+        result["status"] = "error"
+        result["errors"].append("Missing AMO credentials (AMO_API_KEY + AMO_API_SECRET).")
+        return result
+
+    out_dir = Path(artifacts_dir) if artifacts_dir else Path.cwd() / "signed"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    for attempt in range(1, int(max_waits) + 1):
+        try:
+            data = _amo_get(f"addons/addon/{guid_or_id}/versions/", key, secret, amo_base_url)
+        except Exception as e:
+            result["errors"].append(f"poll {attempt}: {type(e).__name__}: {str(e)[:150]}")
+            _time.sleep(poll_seconds)
+            continue
+        match = next((v for v in data.get("results", []) if str(v.get("version")) == str(version)), None)
+        if match is None and str(version).isdigit():
+            # Algunas respuestas vienen por id de version en vez de lista.
+            try:
+                match = _amo_get(f"addons/addon/{guid_or_id}/versions/{version}/", key, secret, amo_base_url)
+            except Exception:
+                match = None
+        f = (match or {}).get("file") or {}
+        state = f.get("status")
+        result["attempts"] = attempt
+        if match and (match.get("reviewed") or (state and state not in ("unreviewed", "awaiting_review"))):
+            url = f.get("url")
+            if not url:
+                result["status"] = "error"
+                result["errors"].append("AMO approved but gave no download url")
+                return result
+            try:
+                now = int(_time.time())
+                import jwt as _jwt
+                token = _jwt.encode({"iss": key, "iat": now, "exp": now + 300}, secret, algorithm="HS256")
+                req = _url.Request(url, headers={"Authorization": f"JWT {token}"})
+                dest = out_dir / f"{guid_or_id}-{version}-signed.xpi"
+                with _url.urlopen(req, timeout=120) as res, open(dest, "wb") as fh:
+                    while True:
+                        chunk = res.read(65536)
+                        if not chunk:
+                            break
+                        fh.write(chunk)
+            except Exception as e:
+                result["status"] = "error"
+                result["errors"].append(f"download failed: {type(e).__name__}: {str(e)[:150]}")
+                return result
+            result["status"] = "success"
+            result["signed_xpi"] = str(dest)
+            result["file_status"] = state
+            return result
+        if attempt < int(max_waits):
+            _time.sleep(poll_seconds)
+    result["errors"].append(f"still in review after {max_waits} polls")
+    return result

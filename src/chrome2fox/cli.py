@@ -42,7 +42,7 @@ def cmd_package(args):
 
 def cmd_sign(args):
     """Sign a Firefox extension via AMO (web-ext sign)."""
-    from .signer import sign_extension
+    from .signer import sign_extension, wait_signed
     result = sign_extension(
         Path(args.input),
         api_key=args.api_key,
@@ -53,7 +53,24 @@ def cmd_sign(args):
     )
     # Redacted by construction: signer never returns the secret.
     print(json.dumps(result, indent=2, ensure_ascii=False))
-    return 0 if result.get("status") == "success" else 1
+    if result.get("status") != "success" or not args.wait_download:
+        return 0 if result.get("status") == "success" else 1
+    import json as _json
+
+    def _guid():
+        try:
+            with open(Path(args.input) / "manifest.json", encoding="utf-8") as f:
+                m = _json.load(f)
+            return m.get("browser_specific_settings", {}).get("gecko", {}).get("id", "")
+        except Exception:
+            return ""
+    guid = args.guid or _guid()
+    version = args.version or _json.load(open(Path(args.input) / "manifest.json", encoding="utf-8")).get("version", "")
+    waited = wait_signed(guid, version, api_key=args.api_key, api_secret=args.api_secret,
+                         artifacts_dir=Path(args.output) if args.output else None,
+                         poll_seconds=args.poll, max_waits=args.max_waits)
+    print(json.dumps(waited, indent=2, ensure_ascii=False))
+    return 0 if waited.get("status") == "success" else 1
 
 
 def cmd_repair(args):
@@ -381,6 +398,11 @@ def main():
     p_sign.add_argument("--api-key", help="AMO JWT issuer (or AMO_API_KEY env)")
     p_sign.add_argument("--api-secret", help="AMO JWT secret (or AMO_API_SECRET env)")
     p_sign.add_argument("--timeout", type=int, default=300, help="Seconds to wait for AMO (default: 300)")
+    p_sign.add_argument("--wait-download", action="store_true", help="Poll AMO until review finishes and download the signed .xpi")
+    p_sign.add_argument("--guid", help="AMO guid (default: read from manifest gecko.id)")
+    p_sign.add_argument("--version", help="Version to wait for (default: read from manifest)")
+    p_sign.add_argument("--poll", type=int, default=120, help="Seconds between AMO polls (default: 120)")
+    p_sign.add_argument("--max-waits", type=int, default=15, help="Max AMO polls (default: 15)")
     p_sign.set_defaults(func=cmd_sign)
 
     # repair

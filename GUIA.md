@@ -58,7 +58,7 @@ export AMO_API_SECRET="jwt-secret..."
 # 2. Pipeline completo
 chrome2fox convert corpus/foxblock-adblock -o output/foxblock-adblock-firefox
 chrome2fox validate output/foxblock-adblock-firefox
-chrome2fox sign output/foxblock-adblock-firefox -o output/signed --channel unlisted
+chrome2fox sign output/foxblock-adblock-firefox -o output/signed --channel unlisted --wait-download  # espera la revision y descarga el .xpi solo
 # El .xpi firmado cae en output/signed/ y se instala PERMANENTE (doble clic o about:addons)
 ```
 
