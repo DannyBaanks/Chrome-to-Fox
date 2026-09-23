@@ -132,3 +132,44 @@ def test_wait_signed_still_pending(tmp_path):
                                      artifacts_dir=tmp_path, poll_seconds=0, max_waits=2)
     assert result["status"] == "pending"
     assert result["signed_xpi"] is None
+
+
+def test_get_status_awaiting(tmp_path):
+    """Test status reports awaiting with review link (mocked)."""
+    from chrome2fox import signer as S
+    from chrome2fox.signer import get_status
+    addon = {"id": 123, "status": "incomplete"}
+    listing = {"results": [
+        {"id": 9, "version": "0.1.0", "channel": "unlisted", "reviewed": None,
+         "file": {"id": 1, "status": "unreviewed"}}]}
+    with patch.object(S, "_amo_get", side_effect=[addon, listing]):
+        r = get_status("g", "0.1.0", api_key="K" + "0" * 31, api_secret="S" + "0" * 31)
+    assert r["overall"] == "awaiting"
+    v = r["versions"][0]
+    assert v["state"] == "awaiting"
+    assert v["review_url"] == "https://addons.mozilla.org/en-US/developers/addon/123/versions/9"
+
+
+def test_get_status_approved(tmp_path):
+    """Test status reports approved when reviewed (mocked)."""
+    from chrome2fox import signer as S
+    from chrome2fox.signer import get_status
+    addon = {"id": 123, "status": "incomplete"}
+    listing = {"results": [
+        {"id": 9, "version": "0.1.0", "channel": "unlisted", "reviewed": "2026-09-23T00:00:00Z",
+         "file": {"id": 1, "status": "public"}}]}
+    with patch.object(S, "_amo_get", side_effect=[addon, listing]):
+        r = get_status("g", api_key="K" + "0" * 31, api_secret="S" + "0" * 31)
+    assert r["overall"] == "approved"
+    assert r["versions"][0]["state"] == "approved"
+
+
+def test_get_status_no_creds():
+    """Test status fails closed without keys."""
+    from chrome2fox.signer import get_status
+    import os
+    with patch.dict("os.environ", {}, clear=False):
+        os.environ.pop("AMO_API_KEY", None)
+        os.environ.pop("AMO_API_SECRET", None)
+        r = get_status("g")
+    assert r["overall"] == "error"

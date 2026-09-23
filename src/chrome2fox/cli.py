@@ -73,6 +73,30 @@ def cmd_sign(args):
     return 0 if waited.get("status") == "success" else 1
 
 
+def cmd_status(args):
+    """Show AMO review status (awaiting with link / approved)."""
+    from .signer import get_status
+    target = args.input
+    version = args.version
+    # Acepta un directorio de extension: lee guid+version del manifest.
+    maybe_manifest = Path(target) / "manifest.json"
+    if maybe_manifest.exists():
+        try:
+            with open(maybe_manifest, encoding="utf-8") as f:
+                m = json.load(f)
+            g = m.get("browser_specific_settings", {}).get("gecko", {}).get("id", "")
+            if g:
+                target = g
+            if not version:
+                version = m.get("version")
+        except Exception:
+            pass
+    result = get_status(target, version, api_key=args.api_key,
+                        api_secret=args.api_secret)
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+    return 0 if result.get("overall") == "approved" else 1
+
+
 def cmd_repair(args):
     """Convert and repair a Chrome extension with LLM-powered fixes."""
     from .converter import convert_extension
@@ -404,6 +428,14 @@ def main():
     p_sign.add_argument("--poll", type=int, default=120, help="Seconds between AMO polls (default: 120)")
     p_sign.add_argument("--max-waits", type=int, default=15, help="Max AMO polls (default: 15)")
     p_sign.set_defaults(func=cmd_sign)
+
+    # status
+    p_status = subparsers.add_parser("status", help="Show AMO review status for a signed submission")
+    p_status.add_argument("input", help="Extension dir, AMO guid or numeric addon id")
+    p_status.add_argument("--version", help="Version (default: from manifest, or all)")
+    p_status.add_argument("--api-key", help="AMO JWT issuer (or AMO_API_KEY env)")
+    p_status.add_argument("--api-secret", help="AMO JWT secret (or AMO_API_SECRET env)")
+    p_status.set_defaults(func=cmd_status)
 
     # repair
     p_repair = subparsers.add_parser("repair", help="Convert and repair with LLM")

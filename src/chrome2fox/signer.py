@@ -235,3 +235,99 @@ def wait_signed(
             _time.sleep(poll_seconds)
     result["errors"].append(f"still in review after {max_waits} polls")
     return result
+
+
+# ---------------------------------------------------------------------------
+# Status: pregunta a AMO como va la revision (awaiting con link / aprobada).
+# ---------------------------------------------------------------------------
+
+def get_status(
+    guid_or_id: str,
+    version: str | None = None,
+    api_key: str | None = None,
+    api_secret: str | None = None,
+    amo_base_url: str | None = None,
+) -> dict[str, Any]:
+    """Consulta el estado de revision en AMO.
+
+    Args:
+        guid_or_id: guid de la extension o id numerico del addon en AMO.
+        version: version concreta ("0.1.0") o id de version ("6509541").
+            Si se omite, reporta todas las versiones encontradas.
+
+    Returns:
+        Dict con overall ("approved" | "awaiting" | "not_found" | "error"),
+        review_url por version y detalle de fichero. Sin secretos.
+        Exit-code sugerido: approved -> 0, lo demas -> 1.
+    """
+    result: dict[str, Any] = {
+        "guid": guid_or_id, "overall": "error",
+        "addon_id": None, "addon_status": None,
+        "versions": [], "errors": [],
+    }
+    key = api_key or os.environ.get("AMO_API_KEY", "")
+    secret = api_secret or os.environ.get("AMO_API_SECRET", "")
+    if not key or not secret:
+        result["errors"].append("Missing AMO credentials (AMO_API_KEY + AMO_API_SECRET).")
+        return result
+
+    try:
+        addon = _amo_get(f"addons/addon/{guid_or_id}/", key, secret, amo_base_url)
+    except Exception as e:
+        result["errors"].append(f"addon lookup failed: {type(e).__name__}: {str(e)[:150]}")
+        return result
+    addon_id = addon.get("id")
+    result["addon_id"] = addon_id
+    result["addon_status"] = addon.get("status")
+
+    wanted = str(version) if version is not None else None
+    found: list[dict[str, Any]] = []
+    try:
+        listing = _amo_get(f"addons/addon/{guid_or_id}/versions/", key, secret, amo_base_url)
+        found = listing.get("results", []) or []
+    except Exception:
+        found = []
+    picks: list[dict[str, Any]] = []
+    if wanted and wanted.isdigit():
+        try:
+            picks = [_amo_get(f"addons/addon/{guid_or_id}/versions/{wanted}/", key, secret, amo_base_url)]
+        except Exception as e:
+            result["errors"].append(f"version lookup failed: {type(e).__name__}: {str(e)[:150]}")
+    else:
+        picks = [v for v in found if wanted is None or str(v.get("version")) == wanted]
+        # Las versiones unlisted no siempre listan: intenta detalle directo.
+        if wanted and not picks and addon_id:
+            try:
+                maybe = _amo_get(f"addons/addon/{addon_id}/versions/{wanted}/", key, secret, amo_base_url)
+                if str(maybe.get("version")) == wanted:
+                    picks = [maybe]
+            except Exception:
+                pass
+
+    if not picks:
+        result["overall"] = "not_found"
+        result["errors"].append(f"version {wanted or '(any)'} not found on AMO")
+        return result
+
+    states = set()
+    for v in picks:
+        f = v.get("file") or {}
+        state = f.get("status")
+        reviewed = bool(v.get("reviewed"))
+        done = reviewed or (state and state not in ("unreviewed", "awaiting_review"))
+        states.add("approved" if done else "awaiting")
+        vid = v.get("id")
+        result["versions"].append({
+            "version": v.get("version"),
+            "version_id": vid,
+            "channel": v.get("channel"),
+            "reviewed": v.get("reviewed"),
+            "file_status": state,
+            "state": "approved" if done else "awaiting",
+            "review_url": (
+                f"https://addons.mozilla.org/en-US/developers/addon/{addon_id}/versions/{vid}"
+                if addon_id and vid else None
+            ),
+        })
+    result["overall"] = "approved" if states == {"approved"} else "awaiting"
+    return result

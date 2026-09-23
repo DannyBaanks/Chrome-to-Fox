@@ -65,6 +65,8 @@ chrome2fox sign output/foxblock-adblock-firefox -o output/signed --channel unlis
 - `unlisted` = firmado sin publicar (para ti / tu gente). `listed` = tienda publica.
 - Las claves viajan por entorno al proceso hijo, nunca en argv ni en logs.
 - AMO tarda 1-5 min la primera vez; sube `--timeout` si corta antes.
+- Para ver como va la revision sin abrir el navegador:
+  `chrome2fox status output/foxblock-adblock-firefox` (exit 0 = aprobada, 1 = en cola; trae `review_url`).
 
 ## Traps
 

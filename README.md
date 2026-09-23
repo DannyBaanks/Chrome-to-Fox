@@ -294,6 +294,7 @@ Next extension uses rule (no LLM cost)
 | `repair` | Convert + test + repair | `chrome2fox repair ./ext/ -o ./out/ --llm-base-url ...` |
 | `bridge` | Scan + Convert all | `chrome2fox bridge -o ./out/` |
 | `sign` | Sign via AMO (permanent install) | `chrome2fox sign ./out/ --channel unlisted` |
+| `status` | AMO review status (awaiting w/ link / approved) | `chrome2fox status ./out/` |
 | `corpus` | Build extension corpus | `chrome2fox corpus ./exts/ -o ./corpus/` |
 | `patterns` | Detect repair patterns | `chrome2fox patterns ./corpus/ -o rules.json` |
 
