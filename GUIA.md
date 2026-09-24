@@ -54,6 +54,8 @@ chrome2fox analyze corpus/has-offscreen/
 cd "/home/danny/Development/ISyCo Git/Chrome-to-Fox"
 pipx install --editable .   # una vez; crea ~/.local/bin/chrome2fox
 chrome2fox --version        # desde cualquier carpeta
+chrome2fox                  # menu interactivo (con TTY)
+chrome2fox up ./mi-ext/ -o ./out/  # ★ flujo completo + dashboard
 ```
 
 Tus envios se anotan solos en `~/.config/chrome2fox/submissions.json`:

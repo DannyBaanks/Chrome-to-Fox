@@ -400,10 +400,110 @@ def cmd_bridge(args):
     return 0 if result.failed == 0 else 1
 
 
+def cmd_up(args):
+    """Flujo completo: analyze + convert + validate + package (+ sign si hay claves)."""
+    import sys
+    from argparse import Namespace
+    from pathlib import Path as _P
+    from .ui import log, dash
+
+    src, out = _P(args.input), _P(args.output)
+    log(f"flujo completo sobre {src}")
+    from .analyzer import analyze_extension
+    a = analyze_extension(src)
+    if "error" in a:
+        print(dash(False, "▚ CHROME2FOX UP", [("error", a["error"])]))
+        return 1
+    score = a.get("compatibility_score", "?")
+    log(f"compatibilidad: {score}")
+
+    import contextlib as _cl, io as _io
+    conv = Namespace(input=str(src), output=str(out))
+    with _cl.redirect_stdout(_io.StringIO()):
+        rc = cmd_convert(conv)
+    log("conversion OK (detalle con `convert` si lo quieres en JSON)")
+    if rc != 0:
+        print(dash(False, "▚ CHROME2FOX UP", [("fase", "convert")]))
+        return 1
+    from .validator import validate_extension
+    v = validate_extension(out)
+    log(f"validacion: {'OK' if v.get('valid') else 'FALLO'}")
+    if not v.get("valid"):
+        print(dash(False, "▚ CHROME2FOX UP", [("fase", "validate"), ("", "; ".join(v.get("errors", []))[:70])]))
+        return 1
+    from .package import package_extension
+    xpi = out.parent / (out.name + ".xpi")
+    pkg = package_extension(out, xpi)
+    log(f"xpi: {xpi} ({pkg.get('size_bytes', 0)} bytes)")
+
+    import os
+    fila_firma = ("firma", "temporal (sin claves AMO: exporta AMO_API_KEY + AMO_API_SECRET)")
+    review = ""
+    if os.environ.get("AMO_API_KEY") or args.api_key:
+        sargs = Namespace(input=str(out), output=str(out.parent / "signed"),
+                          channel="unlisted", api_key=args.api_key,
+                          api_secret=args.api_secret, timeout=args.timeout,
+                          wait_download=False, guid=None, version=None,
+                          poll=120, max_waits=15)
+        if cmd_sign(sargs) == 0:
+            fila_firma = ("firma", "enviada a AMO (unlisted): `chrome2fox status` para verla")
+        else:
+            fila_firma = ("firma", "AMO rechazo el envio (mira el JSON de arriba)")
+
+    import json as _json
+    m = _json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+    print(dash(True, "▚ CHROME2FOX", [
+        ("extension", f"{m.get('name')} {m.get('version')}"),
+        ("compat", str(score)),
+        ("archivos", str(pkg.get("files_included", "?"))),
+        ("xpi", f"{xpi.name}  sha:{str(pkg.get('sha256', ''))[:12]}"),
+        fila_firma,
+        ("", "prueba: about:debugging -> Load Temporary Add-on -> manifest.json"),
+    ]))
+    return 0
+
+
+def run_menu() -> int:
+    """Menu interactivo sin args (solo TTY)."""
+    from argparse import Namespace
+    from .ui import menu
+    opts = [
+        ("up", "★ FLUJO COMPLETO sobre una extension", "input->output"),
+        ("convert", "convierte Chrome -> Firefox", None),
+        ("status", "estado AMO de un envio", None),
+        ("my-addons", "tus envios + estado vivo", None),
+        ("search", "addons publicos que ya existen", None),
+    ]
+    idx = menu([(n, d) for n, d, _ in opts])
+    if idx is None:
+        return 0
+    name = opts[idx][0]
+    if name == "up":
+        src = input("carpeta de la extension Chrome: ").strip()
+        out = input("carpeta de salida [./fox-out]: ").strip() or "./fox-out"
+        return cmd_up(Namespace(input=src, output=out, api_key=None, api_secret=None, timeout=300))
+    if name == "convert":
+        src = input("carpeta de la extension Chrome: ").strip()
+        out = input("carpeta de salida [./fox-out]: ").strip() or "./fox-out"
+        return cmd_convert(Namespace(input=src, output=out))
+    if name == "status":
+        tgt = input("carpeta, guid o id de AMO: ").strip()
+        return cmd_status(Namespace(input=tgt, version=None, api_key=None, api_secret=None))
+    if name == "my-addons":
+        return cmd_my_addons(Namespace(api_key=None, api_secret=None, no_refresh=False))
+    if name == "search":
+        q = input("buscar: ").strip()
+        return cmd_search(Namespace(query=q, limit=10))
+    return 0
+
+
 def main():
+    from .ui import HELP_EPILOG
     parser = argparse.ArgumentParser(
         prog="chrome2fox",
-        description="Chrome extension to Firefox extension converter",
+        description="▚ CHROME2FOX  port control (Chrome -> Firefox)",
+        epilog=HELP_EPILOG,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
@@ -429,6 +529,15 @@ def main():
     p_package.add_argument("input", help="Path to Firefox extension directory")
     p_package.add_argument("-o", "--output", required=True, help="Output .xpi path")
     p_package.set_defaults(func=cmd_package)
+
+    # up (flujo completo estrella)
+    p_up = subparsers.add_parser("up", help="★ FLUJO COMPLETO: analyze+convert+validate+package(+sign) y dashboard")
+    p_up.add_argument("input", help="Carpeta de la extension Chrome")
+    p_up.add_argument("-o", "--output", required=True, help="Carpeta de salida Firefox")
+    p_up.add_argument("--api-key", help="AMO JWT issuer (or AMO_API_KEY env)")
+    p_up.add_argument("--api-secret", help="AMO JWT secret (or AMO_API_SECRET env)")
+    p_up.add_argument("--timeout", type=int, default=300, help="Segundos de espera a AMO (def. 300)")
+    p_up.set_defaults(func=cmd_up)
 
     # sign
     p_sign = subparsers.add_parser("sign", help="Sign via AMO so Firefox installs it permanently")
@@ -513,6 +622,9 @@ def main():
 
     args = parser.parse_args()
     if not args.command:
+        import sys as _sys
+        if _sys.stdin.isatty():
+            return run_menu()
         parser.print_help()
         return 1
 

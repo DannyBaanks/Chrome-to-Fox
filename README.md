@@ -294,6 +294,7 @@ Next extension uses rule (no LLM cost)
 | `sign` | Sign via AMO (permanent install) | `chrome2fox sign ./out/ --channel unlisted` |
 | `status` | AMO review status (awaiting w/ link / approved) | `chrome2fox status ./out/` |
 | `my-addons` | Tus envios a AMO con estado vivo | `chrome2fox my-addons` |
+| `up` | ★ FLUJO COMPLETO + dashboard | `chrome2fox up ./ext/ -o ./out/` |
 | `search` | Busca addons publicos en AMO | `chrome2fox search ublock` |
 | `corpus` | Build extension corpus | `chrome2fox corpus ./exts/ -o ./corpus/` |
 | `patterns` | Detect repair patterns | `chrome2fox patterns ./corpus/ -o rules.json` |
