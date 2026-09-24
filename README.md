@@ -58,9 +58,7 @@ Chrome-to-Fox is a comprehensive tool that ports Chrome extensions to Firefox. I
 ```bash
 git clone https://github.com/DannyBaanks/Chrome-to-Fox.git
 cd Chrome-to-Fox
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e .
+pipx install --editable .   # deja `chrome2fox` en tu PATH, usable desde donde sea
 ```
 
 ### Convert Any Extension (3 commands)
@@ -295,6 +293,8 @@ Next extension uses rule (no LLM cost)
 | `bridge` | Scan + Convert all | `chrome2fox bridge -o ./out/` |
 | `sign` | Sign via AMO (permanent install) | `chrome2fox sign ./out/ --channel unlisted` |
 | `status` | AMO review status (awaiting w/ link / approved) | `chrome2fox status ./out/` |
+| `my-addons` | Tus envios a AMO con estado vivo | `chrome2fox my-addons` |
+| `search` | Busca addons publicos en AMO | `chrome2fox search ublock` |
 | `corpus` | Build extension corpus | `chrome2fox corpus ./exts/ -o ./corpus/` |
 | `patterns` | Detect repair patterns | `chrome2fox patterns ./corpus/ -o rules.json` |
 

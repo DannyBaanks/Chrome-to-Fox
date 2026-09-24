@@ -34,8 +34,9 @@ def test_sign_missing_manifest(tmp_path):
     assert any("manifest.json" in e for e in result["errors"])
 
 
-def test_sign_success_mocked(simple_popup_dir, tmp_path):
+def test_sign_success_mocked(simple_popup_dir, tmp_path, monkeypatch):
     """Test the success path with mocked web-ext (secret never leaks)."""
+    monkeypatch.setenv("CHROME2FOX_CONFIG", str(tmp_path / "cfg"))
     arts = tmp_path / "signed"
     arts.mkdir()
     fake_xpi = arts / "ext-1.0.xpi"
@@ -81,8 +82,9 @@ def test_sign_no_webext(simple_popup_dir):
     run.assert_not_called()
 
 
-def test_wait_signed_download_mocked(tmp_path):
+def test_wait_signed_download_mocked(tmp_path, monkeypatch):
     """Test wait+download path with mocked AMO (no network)."""
+    monkeypatch.setenv("CHROME2FOX_CONFIG", str(tmp_path / "cfg"))
     from chrome2fox.signer import wait_signed
     import io, json
 
@@ -173,3 +175,68 @@ def test_get_status_no_creds():
         os.environ.pop("AMO_API_SECRET", None)
         r = get_status("g")
     assert r["overall"] == "error"
+
+
+def test_ledger_record_and_load(tmp_path, monkeypatch):
+    """Test ledger roundtrip (usa dir temporal, no toca ~/.config)."""
+    from chrome2fox import ledger
+    monkeypatch.setenv("CHROME2FOX_CONFIG", str(tmp_path))
+    assert ledger.load_ledger() == []
+    ledger.record_submission({"guid": "g1", "version": "1.0", "channel": "unlisted"})
+    ledger.record_submission({"guid": "g1", "version": "1.0", "channel": "unlisted"})
+    items = ledger.load_ledger()
+    assert len(items) == 1  # misma guid+version actualiza, no duplica
+    assert items[0]["channel"] == "unlisted"
+
+
+def test_my_addons_no_creds(tmp_path, monkeypatch):
+    """Test my-addons sin claves: solo registro, sin red."""
+    from chrome2fox import ledger
+    from chrome2fox.signer import my_addons
+    monkeypatch.setenv("CHROME2FOX_CONFIG", str(tmp_path))
+    monkeypatch.delenv("AMO_API_KEY", raising=False)
+    monkeypatch.delenv("AMO_API_SECRET", raising=False)
+    ledger.record_submission({"guid": "g1", "version": "1.0"})
+    r = my_addons()
+    assert len(r["submissions"]) == 1
+    assert r["submissions"][0]["state"] == "unknown"
+
+
+def test_my_addons_live_mocked(tmp_path, monkeypatch):
+    """Test my-addons con AMO mockeado (cuenta + estado vivo)."""
+    from unittest.mock import patch
+    from chrome2fox import ledger
+    from chrome2fox import signer as S
+    from chrome2fox.signer import my_addons
+    monkeypatch.setenv("CHROME2FOX_CONFIG", str(tmp_path))
+    ledger.record_submission({"guid": "g1", "version": "1.0", "channel": "unlisted"})
+    me = {"username": "u", "is_addon_developer": True, "num_addons_listed": 0}
+    listing = {"results": []}
+    status = {"overall": "awaiting", "versions": [{"review_url": "http://x"}]}
+    with patch.object(S, "_amo_get", side_effect=[me, listing]):
+        with patch.object(S, "get_status", return_value=status):
+            r = my_addons(api_key="K" + "0" * 31, api_secret="S" + "0" * 31)
+    assert r["account"]["username"] == "u"
+    assert r["submissions"][0]["state"] == "awaiting"
+    assert r["submissions"][0]["review_url"] == "http://x"
+
+
+def test_search_public_mocked():
+    """Test buscador publico con red mockeada."""
+    from unittest.mock import patch
+    import io
+    from chrome2fox.signer import search_addons
+    payload = {"count": 1, "results": [
+        {"name": {"en": "Foo"}, "slug": "foo", "guid": "g",
+         "average_daily_users": 5, "current_version": {"version": "2.0"}}]}
+    import urllib.request as urlreq
+    class Resp:
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+        def read(self, n=-1): return b""
+    with patch.object(urlreq, "urlopen", return_value=Resp()):
+        with patch("json.load", return_value=payload):
+            r = search_addons("foo")
+    assert r["count"] == 1
+    assert r["results"][0]["name"] == "Foo"
+    assert r["results"][0]["url"].endswith("/firefox/addon/foo/")

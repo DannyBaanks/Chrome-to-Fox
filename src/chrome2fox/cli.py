@@ -97,6 +97,23 @@ def cmd_status(args):
     return 0 if result.get("overall") == "approved" else 1
 
 
+def cmd_my_addons(args):
+    """Tus envios a AMO (registro + estado vivo) y tus listed."""
+    from .signer import my_addons
+    result = my_addons(api_key=args.api_key, api_secret=args.api_secret,
+                       refresh=not args.no_refresh)
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+    return 0
+
+
+def cmd_search(args):
+    """Busca addons publicos en AMO (sin credenciales)."""
+    from .signer import search_addons
+    result = search_addons(args.query, page_size=args.limit)
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+    return 0 if not result.get("errors") else 1
+
+
 def cmd_repair(args):
     """Convert and repair a Chrome extension with LLM-powered fixes."""
     from .converter import convert_extension
@@ -436,6 +453,19 @@ def main():
     p_status.add_argument("--api-key", help="AMO JWT issuer (or AMO_API_KEY env)")
     p_status.add_argument("--api-secret", help="AMO JWT secret (or AMO_API_SECRET env)")
     p_status.set_defaults(func=cmd_status)
+
+    # my-addons
+    p_mine = subparsers.add_parser("my-addons", help="Tus envios a AMO con estado vivo")
+    p_mine.add_argument("--api-key", help="AMO JWT issuer (or AMO_API_KEY env)")
+    p_mine.add_argument("--api-secret", help="AMO JWT secret (or AMO_API_SECRET env)")
+    p_mine.add_argument("--no-refresh", action="store_true", help="Solo registro local, sin preguntar a AMO")
+    p_mine.set_defaults(func=cmd_my_addons)
+
+    # search
+    p_search = subparsers.add_parser("search", help="Busca addons publicos en AMO")
+    p_search.add_argument("query", help="Texto a buscar")
+    p_search.add_argument("--limit", type=int, default=10, help="Max resultados (default: 10)")
+    p_search.set_defaults(func=cmd_search)
 
     # repair
     p_repair = subparsers.add_parser("repair", help="Convert and repair with LLM")

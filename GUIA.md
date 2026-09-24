@@ -48,6 +48,18 @@ chrome2fox analyze corpus/has-offscreen/
 # Output: warnings about chrome.offscreen (Chrome-only API)
 ```
 
+## Instalacion (comando `chrome2fox` en tu PATH)
+
+```bash
+cd "/home/danny/Development/ISyCo Git/Chrome-to-Fox"
+pipx install --editable .   # una vez; crea ~/.local/bin/chrome2fox
+chrome2fox --version        # desde cualquier carpeta
+```
+
+Tus envios se anotan solos en `~/.config/chrome2fox/submissions.json`:
+`chrome2fox my-addons` = tu cuenta + tus envios con estado vivo + link.
+`chrome2fox search <texto>` = addons publicos que ya existen (sin claves).
+
 ## Signing (pipeline automatico)
 
 ```bash

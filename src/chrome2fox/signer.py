@@ -133,6 +133,16 @@ def sign_extension(
     signed = max(new_files, key=lambda f: f.stat().st_mtime)
     result["status"] = "success"
     result["signed_xpi"] = str(signed)
+    try:
+        from .ledger import record_submission
+        import json as _json
+        m = _json.loads((ext_dir / "manifest.json").read_text(encoding="utf-8"))
+        record_submission({
+            "name": m.get("name"), "guid": (m.get("browser_specific_settings", {}) or {}).get("gecko", {}).get("id", ""),
+            "version": m.get("version"), "channel": channel, "signed_xpi": str(signed),
+        })
+    except Exception:
+        pass
     return result
 
 
@@ -230,6 +240,12 @@ def wait_signed(
             result["status"] = "success"
             result["signed_xpi"] = str(dest)
             result["file_status"] = state
+            try:
+                from .ledger import record_submission
+                record_submission({"guid": guid_or_id, "version": str(version),
+                                   "signed_xpi": str(dest), "downloaded": True})
+            except Exception:
+                pass
             return result
         if attempt < int(max_waits):
             _time.sleep(poll_seconds)
@@ -331,3 +347,91 @@ def get_status(
         })
     result["overall"] = "approved" if states == {"approved"} else "awaiting"
     return result
+
+
+# ---------------------------------------------------------------------------
+# my-addons: lo tuyo (registro local + estado vivo) y lo publico (buscador).
+# ---------------------------------------------------------------------------
+
+def my_addons(api_key=None, api_secret=None, amo_base_url=None, refresh=True) -> dict[str, Any]:
+    """Tus envios: registro local cruzado con el estado vivo de AMO.
+
+    Incluye tu ficha (username, es developer?) y tus addons listed visibles
+    en el buscador por autor. Sin credenciales muestra solo el registro.
+    """
+    from .ledger import load_ledger
+    result: dict[str, Any] = {"account": {}, "submissions": [], "listed": [], "errors": []}
+    key = api_key or os.environ.get("AMO_API_KEY", "")
+    secret = api_secret or os.environ.get("AMO_API_SECRET", "")
+    entries = load_ledger()
+    if not key or not secret:
+        result["submissions"] = [{**e, "state": "unknown"} for e in entries]
+        result["errors"].append("Sin credenciales: solo registro local (pon AMO_API_KEY + AMO_API_SECRET para estado vivo).")
+        return result
+    try:
+        me = _amo_get("accounts/profile/", key, secret, amo_base_url)
+        result["account"] = {
+            "username": me.get("username"),
+            "is_addon_developer": me.get("is_addon_developer"),
+            "num_addons_listed": me.get("num_addons_listed"),
+        }
+        username = me.get("username") or ""
+    except Exception as e:
+        result["errors"].append(f"profile failed: {type(e).__name__}: {str(e)[:120]}")
+        result["submissions"] = [{**e, "state": "unknown"} for e in entries]
+        return result
+    if username:
+        try:
+            import urllib.parse as _up
+            found = _amo_get(f"addons/search/?author={_up.quote(str(username))}&page_size=25",
+                             key, secret, amo_base_url)
+            for a in found.get("results", []):
+                cv = a.get("current_version") or {}
+                result["listed"].append({
+                    "name": a.get("name"), "slug": a.get("slug"), "guid": a.get("guid"),
+                    "version": cv.get("version"), "reviewed": cv.get("reviewed"),
+                    "url": f"https://addons.mozilla.org/firefox/addon/{a.get('slug')}/",
+                })
+        except Exception as e:
+            result["errors"].append(f"author search failed: {type(e).__name__}: {str(e)[:120]}")
+    for e in entries:
+        item = dict(e)
+        if refresh:
+            try:
+                st = get_status(e.get("guid", ""), e.get("version"), key, secret, amo_base_url)
+                item["state"] = st.get("overall")
+                item["review_url"] = (st.get("versions") or [{}])[0].get("review_url")
+            except Exception as ex:
+                item["state"] = "unknown"
+                result["errors"].append(f"status {e.get('guid')}: {type(ex).__name__}")
+        else:
+            item["state"] = item.get("state", "unknown")
+        result["submissions"].append(item)
+    return result
+
+
+def search_addons(query: str, page_size: int = 10, amo_base_url: str | None = None) -> dict[str, Any]:
+    """Busca addons PUBLICOS en AMO (sin credenciales)."""
+    import json as _json
+    import urllib.parse as _up
+    import urllib.request as _url
+    base = (amo_base_url or "https://addons.mozilla.org/api/v5/").rstrip("/") + "/"
+    url = base + "addons/search/?" + _up.urlencode({"q": query, "page_size": max(1, min(page_size, 25))})
+    try:
+        with _url.urlopen(url, timeout=30) as res:
+            data = _json.load(res)
+    except Exception as e:
+        return {"query": query, "count": 0, "results": [],
+                "errors": [f"search failed: {type(e).__name__}: {str(e)[:150]}"]}
+    out = []
+    for a in data.get("results", []):
+        cv = a.get("current_version") or {}
+        name = a.get("name")
+        out.append({
+            "name": next(iter(name.values())) if isinstance(name, dict) and name else name,
+            "slug": a.get("slug"), "guid": a.get("guid"),
+            "users": a.get("average_daily_users"),
+            "version": cv.get("version"),
+            "url": f"https://addons.mozilla.org/firefox/addon/{a.get('slug')}/",
+        })
+    return {"query": query, "count": data.get("count"), "results": out, "errors": []}
