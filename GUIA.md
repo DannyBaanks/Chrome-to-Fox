@@ -71,6 +71,10 @@ chrome2fox up "https://chromewebstore.google.com/detail/ublock-origin/cjpalhdlnb
 ```
 
 Trampas:
+- `web-ext lint` siempre mostrara 2 warnings KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION
+  (`data_collection_permissions` pide FF140+/142, sellamos 113 por DNR). Son informativos:
+  Firefox viejo ignora la clave y AMO no bloquea por warnings. NO subas el minimo a 140
+  o le cierras la puerta a FF113-139.
 - Google limita descargas automaticas (HTTP 204 / `noupdate` fantasma). Si el fetch falla,
   baja el .crx a mano (modo desarrollador de Chrome) y usa la carpeta local.
 - Firmar extensiones AJENAS: solo canal `unlisted` y para uso propio. `listed`

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FoxBlock Minimal Adblocker",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Bloqueador minimo MV3 de ejemplo para convertir con Chrome-to-Fox (DNR + filtro cosmetico).",
   "permissions": [
     "declarativeNetRequest",

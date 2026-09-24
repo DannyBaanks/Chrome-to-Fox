@@ -101,3 +101,21 @@ def test_transform_preserves_existing_gecko():
 
     assert result["browser_specific_settings"]["gecko"]["id"] == "@my-extension"
     assert result["browser_specific_settings"]["gecko"]["strict_min_version"] == "115.0"
+
+
+def test_transform_stamps_data_collection_none():
+    """Test que sella data_collection_permissions none por defecto (exigido AMO)."""
+    manifest = {"manifest_version": 3, "name": "Test", "version": "1.0.0"}
+    result = transform_manifest(manifest)
+    assert result["browser_specific_settings"]["gecko"]["data_collection_permissions"] == {"required": ["none"]}
+
+
+def test_transform_preserves_data_collection():
+    """Test que respeta data_collection_permissions declarado por el dev."""
+    manifest = {
+        "manifest_version": 3, "name": "Test", "version": "1.0.0",
+        "browser_specific_settings": {"gecko": {
+            "id": "@x", "data_collection_permissions": {"required": ["websiteActivity"]}}},
+    }
+    result = transform_manifest(manifest)
+    assert result["browser_specific_settings"]["gecko"]["data_collection_permissions"] == {"required": ["websiteActivity"]}

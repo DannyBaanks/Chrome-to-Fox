@@ -27,6 +27,13 @@ def transform_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
     elif "gecko" not in result["browser_specific_settings"]:
         result["browser_specific_settings"]["gecko"] = _generate_gecko_id(result)
 
+    # AMO exige data_collection_permissions en altas nuevas (2025-11-03).
+    # Por defecto se declara que NO se recolecta nada; si tu extension
+    # si recolecta, declara los tipos reales antes de firmar (MDN:
+    # browser_specific_settings > data_collection_permissions).
+    result["browser_specific_settings"]["gecko"].setdefault(
+        "data_collection_permissions", {"required": ["none"]})
+
     # Remove Chrome-specific fields
     chrome_fields = ["key", "minimum_chrome_version"]
     for field in chrome_fields:
