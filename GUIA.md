@@ -62,6 +62,20 @@ Tus envios se anotan solos en `~/.config/chrome2fox/submissions.json`:
 `chrome2fox my-addons` = tu cuenta + tus envios con estado vivo + link.
 `chrome2fox search <texto>` = addons publicos que ya existen (sin claves).
 
+## Bajar por link (estilo fox-convert)
+
+```bash
+chrome2fox fetch "https://chromewebstore.google.com/detail/ublock-origin/cjpalhdlnbpafiamejdnhcphjbkeiagm" -o ./ublock-src/
+chrome2fox up "https://chromewebstore.google.com/detail/ublock-origin/cjpalhdlnbpafiamejdnhcphjbkeiagm" -o ./ublock-fox/
+# con claves AMO exportadas, el up ADEMAS la firma: link -> .xpi firmado
+```
+
+Trampas:
+- Google limita descargas automaticas (HTTP 204 / `noupdate` fantasma). Si el fetch falla,
+  baja el .crx a mano (modo desarrollador de Chrome) y usa la carpeta local.
+- Firmar extensiones AJENAS: solo canal `unlisted` y para uso propio. `listed`
+  seria republicar trabajo ajeno (violacion de politicas AMO).
+
 ## Signing (pipeline automatico)
 
 ```bash
