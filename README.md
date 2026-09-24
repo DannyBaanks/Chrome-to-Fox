@@ -295,6 +295,9 @@ Next extension uses rule (no LLM cost)
 | `status` | AMO review status (awaiting w/ link / approved) | `chrome2fox status ./out/` |
 | `my-addons` | Tus envios a AMO con estado vivo | `chrome2fox my-addons` |
 | `up` | ★ FLUJO COMPLETO + dashboard | `chrome2fox up ./ext/ -o ./out/` |
+| `fetch` | Baja extension por link del store (estilo fox-convert) | `chrome2fox fetch <url> -o ./src/` |
+
+`up` tambien acepta el link directo: `chrome2fox up <url> -o ./out/` (+ firma con claves AMO).
 | `search` | Busca addons publicos en AMO | `chrome2fox search ublock` |
 | `corpus` | Build extension corpus | `chrome2fox corpus ./exts/ -o ./corpus/` |
 | `patterns` | Detect repair patterns | `chrome2fox patterns ./corpus/ -o rules.json` |

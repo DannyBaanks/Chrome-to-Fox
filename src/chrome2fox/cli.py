@@ -400,6 +400,33 @@ def cmd_bridge(args):
     return 0 if result.failed == 0 else 1
 
 
+def cmd_fetch(args):
+    """Baja una extension del Chrome Web Store por URL o id (estilo fox-convert)."""
+    from .downloader import fetch_extension
+    from .ui import log
+    result = fetch_extension(args.input, Path(args.output))
+    if result.get("status") == "success":
+        log(f"bajada: {result.get('name')} {result.get('version')} ({result.get('files')} archivos)")
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+    return 0 if result.get("status") == "success" else 1
+
+
+def _resolve_input_to_dir(src: str, output: Path):
+    """URL/id -> descarga a <output>-src; carpeta -> tal cual."""
+    from pathlib import Path as _P
+    from .downloader import fetch_extension, looks_like_url_or_id
+    from .ui import log
+    if not looks_like_url_or_id(src):
+        return _P(src), None
+    dl = _P(str(output) + "-src")
+    log(f"link detectado, bajando a {dl}")
+    rep = fetch_extension(src, dl)
+    if rep.get("status") != "success":
+        return None, "; ".join(rep.get("errors", ["fetch fallo"]))
+    log(f"bajada: {rep.get('name')} {rep.get('version')}")
+    return dl, None
+
+
 def cmd_up(args):
     """Flujo completo: analyze + convert + validate + package (+ sign si hay claves)."""
     import sys
@@ -408,6 +435,10 @@ def cmd_up(args):
     from .ui import log, dash
 
     src, out = _P(args.input), _P(args.output)
+    src, fetch_err = _resolve_input_to_dir(args.input, out)
+    if src is None:
+        print(dash(False, "▚ CHROME2FOX UP", [("fase", "fetch"), ("", str(fetch_err)[:70])]))
+        return 1
     log(f"flujo completo sobre {src}")
     from .analyzer import analyze_extension
     a = analyze_extension(src)
@@ -530,9 +561,15 @@ def main():
     p_package.add_argument("-o", "--output", required=True, help="Output .xpi path")
     p_package.set_defaults(func=cmd_package)
 
+    # fetch (estilo fox-convert: link -> carpeta)
+    p_fetch = subparsers.add_parser("fetch", help="Baja extension del Chrome Web Store por URL o id")
+    p_fetch.add_argument("input", help="URL del store o id de 32 letras")
+    p_fetch.add_argument("-o", "--output", required=True, help="Carpeta destino")
+    p_fetch.set_defaults(func=cmd_fetch)
+
     # up (flujo completo estrella)
     p_up = subparsers.add_parser("up", help="★ FLUJO COMPLETO: analyze+convert+validate+package(+sign) y dashboard")
-    p_up.add_argument("input", help="Carpeta de la extension Chrome")
+    p_up.add_argument("input", help="Carpeta, URL del store o id de la extension")
     p_up.add_argument("-o", "--output", required=True, help="Carpeta de salida Firefox")
     p_up.add_argument("--api-key", help="AMO JWT issuer (or AMO_API_KEY env)")
     p_up.add_argument("--api-secret", help="AMO JWT secret (or AMO_API_SECRET env)")
