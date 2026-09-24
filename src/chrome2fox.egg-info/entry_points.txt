@@ -1,2 +1,0 @@
-[console_scripts]
-chrome2fox = chrome2fox.cli:main
