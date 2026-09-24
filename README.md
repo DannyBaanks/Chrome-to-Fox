@@ -167,10 +167,10 @@ src/chrome2fox/
 
 | API | Shim Type | Bridge Technology |
 |-----|-----------|-------------------|
-| `chrome.debugger` | Full CDP Bridge | `browser.scripting.executeScript` |
-| `chrome.usb` | Full WebUSB Bridge | `navigator.usb` |
-| `chrome.serial` | Full Web Serial Bridge | `navigator.serial` |
-| `chrome.hid` | Full WebHID Bridge | `navigator.hid` |
+| `chrome.debugger` | Partial CDP emulation: DOM, CSS, Runtime and Page commands run as page scripts. `Debugger.*` stepping and breakpoints do not really pause (a `debugger;` statement only stops when DevTools is open), and `Network.getResponseBody` is not available | `browser.scripting.executeScript` |
+| `chrome.usb` | Maps to WebUSB when `navigator.usb` exists; otherwise it logs a warning and returns empty results. Firefox does not expose WebUSB | `navigator.usb` |
+| `chrome.serial` | Maps to Web Serial when `navigator.serial` exists; otherwise it logs a warning | `navigator.serial` |
+| `chrome.hid` | Maps to WebHID when `navigator.hid` exists; otherwise it logs a warning and returns empty results. Firefox does not expose WebHID | `navigator.hid` |
 | `chrome.tts` | Full Web Speech Bridge | `SpeechSynthesis` API |
 | `chrome.tabCapture` | Firefox + getUserMedia | `browser.tabCapture` |
 | `chrome.offscreen` | Mock | Storage-based |
@@ -304,10 +304,10 @@ Chrome-to-Fox/
 │   ├── chrome_scanner.py        # Scan Chrome extensions
 │   ├── firefox_exporter.py      # Batch export to Firefox
 │   └── shims/                   # 10 polyfill shims
-│       ├── debugger_polyfill.js # Full CDP bridge (1100+ lines)
-│       ├── usb_polyfill.js      # WebUSB bridge
-│       ├── serial_polyfill.js   # Web Serial bridge
-│       ├── hid_polyfill.js      # WebHID bridge
+│       ├── debugger_polyfill.js # Partial CDP emulation (see API table)
+│       ├── usb_polyfill.js      # WebUSB when present, else warning
+│       ├── serial_polyfill.js   # Web Serial when present, else warning
+│       ├── hid_polyfill.js      # WebHID when present, else warning
 │       ├── tts_polyfill.js      # Web Speech bridge
 │       ├── tabcapture_polyfill.js
 │       ├── offscreen_polyfill.js
